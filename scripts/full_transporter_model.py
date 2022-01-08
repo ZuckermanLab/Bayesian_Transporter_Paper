@@ -298,13 +298,14 @@ def log_probability(theta, y_obs, model):
 
 def randomize_model_parameters(p):
     '''randomize initial parameter values to be within accepted range for each parameter type'''
-    k_conf_range = (-1,5)
-    k_H_on_range = (7,13)
-    k_H_off_range = (0,6)
-    k_S_on_range = (4,10)
-    k_S_off_range = (0,6)
+    s=4
+    k_conf_range = (-1-s,5)
+    k_H_on_range = (7-s,13)
+    k_H_off_range = (0-s,6)
+    k_S_on_range = (4-s,10)
+    k_S_off_range = (0-s,6)
     # sigma_range = (np.log10(5e-14),np.log10(5e-13))
-    sigma_range = ((1e-13 - (1e-13*0.01)), (1e-13 + (1e-13*0.01)))
+    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
     # rxn1: IF -> OF; vol*(rxn1_k1*IF - rxn1_k2*OF)
     p[0] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn1_k1
@@ -362,13 +363,14 @@ def randomize_model_parameters(p):
 
 def set_reference_model_parameters(p):
     '''set parameter values for reference model'''
-    k_conf_range = (-1,5)
-    k_H_on_range = (7,13)
-    k_H_off_range = (0,6)
-    k_S_on_range = (4,10)
-    k_S_off_range = (0,6)
+    s=4
+    k_conf_range = (-1-s,5)
+    k_H_on_range = (7-s,13)
+    k_H_off_range = (0-s,6)
+    k_S_on_range = (4-s,10)
+    k_S_off_range = (0-s,6)
     #sigma_range = (np.log10(5e-15),np.log10(5e-12))
-    sigma_range = ((1e-13 - (1e-13*0.01)), (1e-13 + (1e-13*0.01)))
+    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
 
     k_H_on = np.log10(1e10)
@@ -452,14 +454,15 @@ def set_reference_model_parameters(p):
 
 def check_prior(p):
     '''set parameter values for reference model'''
-    k_conf_range = (-1,5)
-    k_H_on_range = (7,13)
-    k_H_off_range = (0,6)
-    k_S_on_range = (4,10)
-    k_S_off_range = (0,6)
+    s = 4
+    k_conf_range = (-1-s,5)
+    k_H_on_range = (7-s,13)
+    k_H_off_range = (0-s,6)
+    k_S_on_range = (4-s,10)
+    k_S_off_range = (0-s,6)
     # sigma_range = (np.log10(5e-14,5e-13))
-    sigma_range = ((1e-13 - (1e-13*0.01)), (1e-13 + (1e-13*0.01)))
-    lb_shift = 0
+    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
+
 
     prior_dict = {}
     prior_dict['k_conf'] = [k_conf_range, [0,1,6,7,10,11,14,15]]
@@ -475,7 +478,7 @@ def check_prior(p):
         #print(f'{key}: range ({tmp_range[0]},{tmp_range[1]}), idx {tmp_idx_list}')
         for idx in tmp_idx_list:
             #print(f'  p[{idx}]: {tmp_range[0]} <= {p[idx]} <= {tmp_range[1]} ?')
-            if not tmp_range[0]-lb_shift <= p[idx] <= tmp_range[1]:
+            if not tmp_range[0] <= p[idx] <= tmp_range[1]:
                 #print('  !ALERT: OUT OF RANGE! returning FALSE')
                 return False
         #print('\n')
@@ -503,37 +506,34 @@ k_S_on = np.log10(1e7)
 k_S_off = np.log10(1e3)
 k_conf = np.log10(1e2)
 
+p_synth = np.zeros(25)
+p_synth = p_synth - 13
+p_synth[2] = k_H_on
+p_synth[3] = k_H_off
+p_synth[4] = k_S_off
+p_synth[5] = k_S_on
+p_synth[6] = k_conf
+p_synth[7] = k_conf
+p_synth[10] = k_conf
+p_synth[11] = k_conf
+p_synth[20] = k_S_on
+p_synth[21] = k_S_off
+p_synth[22] = k_H_off
+p_synth[23] = k_H_on
+p_synth[24] = sigma_ref
+print(p_synth)
 
-k_ref = np.zeros(24)
-k_ref = k_ref - 13
-k_ref[2] = k_H_on
-k_ref[3] = k_H_off
-k_ref[4] = k_S_off
-k_ref[5] = k_S_on
-k_ref[6] = k_conf
-k_ref[7] = k_conf
-k_ref[10] = k_conf
-k_ref[11] = k_conf
-k_ref[20] = k_S_on
-k_ref[21] = k_S_off
-k_ref[22] = k_H_off
-k_ref[23] = k_H_on
-print(k_ref)
-
-m = init_model(k_ref)
-y_ref = simulate_model(k_ref,m)
+m = init_model(p_synth)
+y_ref = simulate_model(p_synth,m)
 datafile = '/Users/georgeau/Desktop/GitHub/august/model_identification/affine_MCMC_PT/emcee_full_transporter_data_2stage_2ph_v2.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
+# print(log_likelihood(p_synth,y_obs,m))
+# p_ref = [0]*25
+# print(log_likelihood(set_reference_model_parameters(p_ref), y_obs, m))
 
-k_pr_ref = set_reference_model_parameters(np.zeros(25))  # not exactly the observed trace, but close! in y_obs the unused rates = 1e-13, not the lower prior limit
-
-y_pr_ref = simulate_model(k_pr_ref, m)
-rmse = np.sqrt(np.mean((y_ref-y_pr_ref)**2))
-print(f'rmse: {rmse}')
-   
-
+# exit()
 seed = 1234
 np.random.seed(seed)
 n_walkers = 100
@@ -551,6 +551,8 @@ assert(np.shape(p0) == (n_walkers,n_dim))
 ### sampling
 sampler = mc.EnsembleSampler(n_walkers, n_dim, log_probability, args=[y_obs,m], moves=mc.moves.KDEMove())
 sampler.run_mcmc(p0, int(n_steps+n_burn), progress=True)
+
+#################################################################
 
 ### analysis
 labels = [
@@ -581,7 +583,7 @@ labels = [
     'sigma'
 ]
 
-s=0
+s=4
 sigma_ref = 1e-13
 k_H_on = np.log10(1e10)
 k_H_off = np.log10(1e3)
@@ -595,7 +597,7 @@ k_H_off_range = (0-s,6)
 k_S_on_range = (4-s,10)
 k_S_off_range = (0-s,6)
 # sigma_range = (np.log10(5e-14,5e-13))
-sigma_range = ((1e-13 - (1e-13*0.01)), (1e-13 + (1e-13*0.01)))
+sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
 
 ### boundary ranges
