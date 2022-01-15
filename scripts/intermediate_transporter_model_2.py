@@ -124,10 +124,10 @@ def init_model(p):
             rxn7_k2 = 0;
             rxn8_k1 = 0;
             rxn8_k2 = 0;
-            rxn9_k1 = 0;
-            rxn9_k2 = 0;
-            rxn10_k1 = 0;
-            rxn10_k2 = 0;
+            rxn9_k1 = {theta[11]};
+            rxn9_k2 = {theta[12]};
+            rxn10_k1 = {theta[13]};
+            rxn10_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[11]*theta[13])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[12])};
             rxn11_k1 = {theta[8]};
             rxn11_k2 = {theta[9]};
             rxn12_k1 = {theta[10]};
@@ -182,6 +182,9 @@ def simulate_model(p, z):
     z.rxn11_k2 = 10**p[9]
     z.rxn12_k1 = 10**p[10]
     #z.rxn12_k2 = 10**p[11]
+    z.rxn9_k1 = 10**p[11]
+    z.rxn9_k2 = 10**p[12]
+    z.rxn10_k1 = 10**p[13]
 
     
     # set tolerances for simulations
@@ -230,6 +233,9 @@ def simulate_model(p, z):
     z.rxn11_k2 = 10**p[9]
     z.rxn12_k1 = 10**p[10]
     #z.rxn12_k2 = 10**p[11]
+    z.rxn9_k1 = 10**p[11]
+    z.rxn9_k2 = 10**p[12]
+    z.rxn10_k1 = 10**p[13]
 
     # set tolerances for simulations
     z.integrator.absolute_tolerance = 1e-19
@@ -329,9 +335,16 @@ def randomize_model_parameters(p, s=0):
     p[10] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn12_k1
     #p[11] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn12_k2    
 
+    # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
+    p[11] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) 
+    p[12] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) 
+
+    # rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
+    p[13] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) 
+
     # experimental noise
     #p[12] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
-    p[11] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
+    p[14] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
     
     return p
 
@@ -383,9 +396,16 @@ def set_reference_model_parameters(p, s=0):
     p[10] = k_H_off_range[0] # rxn12_k1
     #p[11] = k_H_on_range[0] # rxn12_k2    
 
+    # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
+    p_ref[11] = k_H_off_range[0]  # rxn9_k1
+    p_ref[12] = k_H_on_range[0]   # rxn9_k2   
+
+    # rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
+    p_ref[13] = k_S_on_range[0]   # rxn10_k1
+
     # experimental noise
     #p[12] = sigma_range[0] # sigma
-    p[11] = sigma_range[0] # sigma
+    p[14] = sigma_range[0] # sigma
 
     # update selected parameters reference values 
     p[0] = k_H_on
@@ -401,7 +421,12 @@ def set_reference_model_parameters(p, s=0):
     p[10] = k_H_off
     #p[11] = k_H_on
     #p[12] = sigma
-    p[11] = sigma
+
+    p[11] = k_H_off
+    p[12] = k_H_on
+    p[13] = k_S_on
+    p[14] = sigma
+
     
     return p
 
@@ -420,13 +445,13 @@ def check_prior(p, s=0):
 
     prior_dict = {}
     prior_dict['k_conf'] = [k_conf_range, [4,5,6,7]]
-    prior_dict['k_H_on'] = [k_H_on_range, [0]]
+    prior_dict['k_H_on'] = [k_H_on_range, [0,12]]
     # prior_dict['k_H_on'] = [k_H_on_range, [0,11]]
-    prior_dict['k_H_off'] = [k_H_off_range, [1,10]]
-    prior_dict['k_S_on'] = [k_S_on_range, [3,8]]
+    prior_dict['k_H_off'] = [k_H_off_range, [1,10,11]]
+    prior_dict['k_S_on'] = [k_S_on_range, [3,8,13]]
     prior_dict['k_S_off'] = [k_S_off_range, [2,9]]
     # prior_dict['sigma'] = [sigma_range, [12]]
-    prior_dict['sigma'] = [sigma_range, [11]]
+    prior_dict['sigma'] = [sigma_range, [14]]
 
     for key in prior_dict:
         tmp_range = prior_dict[key][0]
@@ -451,8 +476,8 @@ def energy_to_rate(p):
 
 ### intialization
 time_str = time.strftime("%Y%m%d_%H%M%S") 
-filename=f'DEBUG_intermediate_transporter_{time_str}'
-new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter')
+filename=f'DEBUG_intermediate_transporter_2_{time_str}'
+new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter_2')
 new_dir.mkdir(parents=True, exist_ok=True)
 
 sigma_ref = 1e-13
@@ -462,7 +487,7 @@ k_S_on = np.log10(1e7)
 k_S_off = np.log10(1e3)
 k_conf = np.log10(1e2)
 
-p_synth = np.zeros(12)
+p_synth = np.zeros(15)
 p_synth[0] = k_H_on
 p_synth[1] = k_H_off
 p_synth[2] = k_S_off
@@ -476,15 +501,17 @@ p_synth[9] = k_S_off
 p_synth[10] = k_H_off
 #p_synth[11] = k_H_on
 #p_synth[12] = sigma_ref
-p_synth[11] = sigma_ref
+p_synth[11] = k_H_off
+p_synth[12] = k_H_on
+p_synth[13] = k_S_on
+p_synth[14] = sigma_ref
 print(p_synth)
 
 
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
-
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph_v2.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
@@ -499,7 +526,7 @@ np.random.seed(seed)
 n_walkers = 50
 n_steps = int(1e5)
 n_burn = int(0.1*n_steps)
-n_dim = 12
+n_dim = 15
 n_temps = 4
 move_list = []
 
@@ -576,6 +603,9 @@ labels = [
     'rxn11_k1',
     'rxn11_k2',
     'rxn12_k1',
+    'rxn9_k1',
+    'rxn9_k2',
+    'rxn10_k1',
     'sigma'
 ]
 
@@ -628,11 +658,18 @@ bounds[9] = k_S_off_range   # rxn11_k2
 
 # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
 bounds[10] = k_H_off_range  # rxn12_k1
-# bounds[11] = k_H_on_range  # rxn12_k2    
+# bounds[11] = k_H_on_range  # rxn12_k2   
+
+# rxn9
+bounds[11] = k_H_off_range
+bounds[12] = k_H_on_range
+
+# rxn10
+bounds[13] = k_S_on_range
 
 # experimental noise
 # bounds[12] = sigma_range # sigma  
-bounds[11] = sigma_range # sigma  
+bounds[14] = sigma_range # sigma  
 print(bounds)
 
 
@@ -663,9 +700,16 @@ p_ref[9] = k_S_off_range[0]   # rxn11_k2
 p_ref[10] = k_H_off_range[0] # rxn12_k1
 # p_ref[11] = k_H_on_range[0]  # rxn12_k2    
 
+# rxn9
+p_ref[11] = k_H_off_range[0]
+p_ref[12] = k_H_on_range[0]
+
+# rxn10
+p_ref[13] = k_S_on_range[0]
+
 # experimental noise
 # p_ref[12] = sigma_range[0] # sigma
-p_ref[11] = sigma_range[0] # sigma
+p_ref[14] = sigma_range[0] # sigma
 
 p_ref[0] = k_H_on
 p_ref[1] = k_H_off
@@ -680,7 +724,10 @@ p_ref[9] = k_S_off
 p_ref[10] = k_H_off
 # p_ref[11] = k_H_on
 # p_ref[12] = sigma_ref
-p_ref[11] = sigma_ref
+p_ref[11] = k_H_off
+p_ref[12] = k_H_on
+p_ref[13] = k_S_on
+p_ref[14] = sigma_ref
 print(p_ref)
 
 
@@ -776,7 +823,7 @@ ax = axes.flatten()
 
 d_dict = {}
 
-ref_idx_list = [0,1,2,3,4,5,6,7,8,9,10,11,12]
+ref_idx_list = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14]
 flat_samples_T = np.transpose(flat_samples)
 for i, lbl in enumerate(labels):
     p_data = flat_samples_T[i]
