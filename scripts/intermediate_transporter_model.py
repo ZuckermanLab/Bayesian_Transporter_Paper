@@ -10,7 +10,7 @@ import os
 
 
 # check environment (fix this later)
-use_pt_sampler = False
+use_pt_sampler = True
 conda_env = os.environ['CONDA_PREFIX']
 print(f'pt sampler={use_pt_sampler}')
 print(conda_env)
@@ -108,31 +108,32 @@ def init_model(p):
             H_out_activation = 5e-8;
 
             // Rate constant initializations:
-            rxn1_k1 = {theta[0]};
-            rxn1_k2 = {theta[1]};
-            rxn2_k1 = {theta[2]};
-            rxn2_k2 = {theta[3]};
-            rxn3_k1 = {theta[4]};
-            rxn3_k2 = {theta[5]};
-            rxn4_k1 = {theta[6]};
-            rxn4_k2 = {theta[7]};
-            rxn5_k1 = {theta[8]};
-            rxn5_k2 = {theta[9]};
-            rxn6_k1 = {theta[10]};
-            rxn6_k2 = {theta[11]};
-            rxn7_k1 = {theta[12]};
-            rxn7_k2 = {theta[13]};
-            rxn8_k1 = {theta[14]};
-            rxn8_k2 = {theta[15]};
-            rxn9_k1 = {theta[16]};
-            rxn9_k2 = {theta[17]};
-            rxn10_k1 = {theta[18]};
-            rxn10_k2 = {theta[19]};
-            rxn11_k1 = {theta[20]};
-            rxn11_k2 = {theta[21]};
-            rxn12_k1 = {theta[22]};
-            rxn12_k2 = {theta[23]};
+            rxn1_k1 = 0;
+            rxn1_k2 = 0;
+            rxn2_k1 = {theta[0]};
+            rxn2_k2 = {theta[1]};
+            rxn3_k1 = {theta[2]};
+            rxn3_k2 = {theta[3]};
+            rxn4_k1 = {theta[4]};
+            rxn4_k2 = {theta[5]};
+            rxn5_k1 = 0;
+            rxn5_k2 = 0;
+            rxn6_k1 = {theta[6]};
+            rxn6_k2 = {theta[7]};
+            rxn7_k1 = 0;
+            rxn7_k2 = 0;
+            rxn8_k1 = 0;
+            rxn8_k2 = 0;
+            rxn9_k1 = 0;
+            rxn9_k2 = 0;
+            rxn10_k1 = 0;
+            rxn10_k2 = 0;
+            rxn11_k1 = {theta[8]};
+            rxn11_k2 = {theta[9]};
+            rxn12_k1 = {theta[10]};
+            rxn12_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[8]*theta[10])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[9])};
 
+            rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in);
 
             // Other declarations:
             const vol, rxn1_k1, rxn1_k2, rxn2_k1, rxn2_k2, rxn3_k1, rxn3_k2;
@@ -168,30 +169,19 @@ def simulate_model(p, z):
     z.H_out_activation = 5e-8
 
     # update rate constants
-    z.rxn1_k1 = 10**p[0]
-    z.rxn1_k2 = 10**p[1]
-    z.rxn2_k1 = 10**p[2]
-    z.rxn2_k2 = 10**p[3]
-    z.rxn3_k1 = 10**p[4]
-    z.rxn3_k2 = 10**p[5]
-    z.rxn4_k1 = 10**p[6]
-    z.rxn4_k2 = 10**p[7]
-    z.rxn5_k1 = 10**p[8]
-    z.rxn5_k2 = 10**p[9]
-    z.rxn6_k1 = 10**p[10]
-    z.rxn6_k2 = 10**p[11]
-    z.rxn7_k1 = 10**p[12]
-    z.rxn7_k2 = 10**p[13]
-    z.rxn8_k1 = 10**p[14]
-    z.rxn8_k2 = 10**p[15]
-    z.rxn9_k1 = 10**p[16]
-    z.rxn9_k2 = 10**p[17]
-    z.rxn10_k1 = 10**p[18]
-    z.rxn10_k2 = 10**p[19]
-    z.rxn11_k1 = 10**p[20]
-    z.rxn11_k2 = 10**p[21]
-    z.rxn12_k1 = 10**p[22]
-    z.rxn12_k2 = 10**p[23]
+
+    z.rxn2_k1 = 10**p[0]
+    z.rxn2_k2 = 10**p[1]
+    z.rxn3_k1 = 10**p[2]
+    z.rxn3_k2 = 10**p[3]
+    z.rxn4_k1 = 10**p[4]
+    z.rxn4_k2 = 10**p[5]
+    z.rxn6_k1 = 10**p[6]
+    z.rxn6_k2 = 10**p[7]
+    z.rxn11_k1 = 10**p[8]
+    z.rxn11_k2 = 10**p[9]
+    z.rxn12_k1 = 10**p[10]
+    #z.rxn12_k2 = 10**p[11]
 
     
     # set tolerances for simulations
@@ -228,30 +218,18 @@ def simulate_model(p, z):
     z.H_out_activation = 5e-7
 
     # update rate constants
-    z.rxn1_k1 = 10**p[0]
-    z.rxn1_k2 = 10**p[1]
-    z.rxn2_k1 = 10**p[2]
-    z.rxn2_k2 = 10**p[3]
-    z.rxn3_k1 = 10**p[4]
-    z.rxn3_k2 = 10**p[5]
-    z.rxn4_k1 = 10**p[6]
-    z.rxn4_k2 = 10**p[7]
-    z.rxn5_k1 = 10**p[8]
-    z.rxn5_k2 = 10**p[9]
-    z.rxn6_k1 = 10**p[10]
-    z.rxn6_k2 = 10**p[11]
-    z.rxn7_k1 = 10**p[12]
-    z.rxn7_k2 = 10**p[13]
-    z.rxn8_k1 = 10**p[14]
-    z.rxn8_k2 = 10**p[15]
-    z.rxn9_k1 = 10**p[16]
-    z.rxn9_k2 = 10**p[17]
-    z.rxn10_k1 = 10**p[18]
-    z.rxn10_k2 = 10**p[19]
-    z.rxn11_k1 = 10**p[20]
-    z.rxn11_k2 = 10**p[21]
-    z.rxn12_k1 = 10**p[22]
-    z.rxn12_k2 = 10**p[23]
+    z.rxn2_k1 = 10**p[0]
+    z.rxn2_k2 = 10**p[1]
+    z.rxn3_k1 = 10**p[2]
+    z.rxn3_k2 = 10**p[3]
+    z.rxn4_k1 = 10**p[4]
+    z.rxn4_k2 = 10**p[5]
+    z.rxn6_k1 = 10**p[6]
+    z.rxn6_k2 = 10**p[7]
+    z.rxn11_k1 = 10**p[8]
+    z.rxn11_k2 = 10**p[9]
+    z.rxn12_k1 = 10**p[10]
+    #z.rxn12_k2 = 10**p[11]
 
     # set tolerances for simulations
     z.integrator.absolute_tolerance = 1e-19
@@ -316,9 +294,9 @@ def log_probability(theta, y_obs, model):
     return logp + log_likelihood(theta, y_obs, model)  # log posterior ~ log likelihood + log prior
 
 
-def randomize_model_parameters(p):
+def randomize_model_parameters(p, s=0):
     '''randomize initial parameter values to be within accepted range for each parameter type'''
-    s=4
+   
     k_conf_range = (-1-s,5)
     k_H_on_range = (7-s,13)
     k_H_off_range = (0-s,6)
@@ -327,61 +305,38 @@ def randomize_model_parameters(p):
     # sigma_range = (np.log10(5e-14),np.log10(5e-13))
     sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
-    # rxn1: IF -> OF; vol*(rxn1_k1*IF - rxn1_k2*OF)
-    p[0] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn1_k1
-    p[1] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn1_k2
-
     # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-    p[2] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn2_k1
-    p[3] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn2_k2
+    p[0] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn2_k1
+    p[1] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn2_k2
 
     # rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-    p[4] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn3_k1
-    p[5] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn3_k2
+    p[2] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn3_k1
+    p[3] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn3_k2
 
     # rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-    p[6] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn4_k1
-    p[7] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn4_k2
-
-    # rxn5: OF_Hb_Sb -> OF_Hb + $S_out; vol*(rxn5_k1*OF_Hb_Sb - rxn5_k2*OF_Hb*S_out)
-    p[8] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn5_k1
-    p[9] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn5_k2
+    p[4] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn4_k1
+    p[5] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn4_k2
 
     # rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-    p[10] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k1
-    p[11] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k2
-
-    # rxn7: OF_Sb + $H_out -> OF_Hb_Sb; vol*(rxn7_k1*OF_Sb*H_out - rxn7_k2*OF_Hb_Sb)
-    p[12] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn7_k1
-    p[13] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn7_k2
-
-    # rxn8: OF_Hb_Sb -> IF_Hb_Sb; vol*(rxn8_k1*OF_Hb_Sb - rxn8_k2*IF_Hb_Sb)
-    p[14] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn8_k1 
-    p[15] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn8_k2
-
-    # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
-    p[16] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn9_k1
-    p[17] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn9_k2   
-
-    # rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
-    p[18] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn10_k1
-    p[19] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn10_k2    
+    p[6] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k1
+    p[7] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k2
 
     # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-    p[20] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn11_k1
-    p[21] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn11_k2    
+    p[8] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn11_k1
+    p[9] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn11_k2    
 
     # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-    p[22] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn12_k1
-    p[23] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn12_k2    
+    p[10] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn12_k1
+    #p[11] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn12_k2    
 
     # experimental noise
-    p[24] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
+    #p[12] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
+    p[11] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
     
     return p
 
 
-def set_reference_model_parameters(p, s=4):
+def set_reference_model_parameters(p, s=0):
     '''set parameter values for reference model'''
     #s=0
     k_conf_range = (-1-s,5)
@@ -403,78 +358,57 @@ def set_reference_model_parameters(p, s=4):
   
 
     # set all parameters to minimum value
-    # rxn1: IF -> OF; vol*(rxn1_k1*IF - rxn1_k2*OF)
-    p[0] = k_conf_range[0]  # rxn1_k1
-    p[1] = k_conf_range[0]  # rxn1_k2
 
     # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-    p[2] = k_H_on_range[0] # rxn2_k1
-    p[3] = k_H_off_range[0]  # rxn2_k2
+    p[0] = k_H_on_range[0] # rxn2_k1
+    p[1] = k_H_off_range[0]  # rxn2_k2
 
     # rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-    p[4] = k_S_off_range[0]  # rxn3_k1
-    p[5] = k_S_on_range[0]# rxn3_k2
+    p[2] = k_S_off_range[0]  # rxn3_k1
+    p[3] = k_S_on_range[0]# rxn3_k2
 
     # rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-    p[6] = k_conf_range[0] # rxn4_k1
-    p[7] = k_conf_range[0]  # rxn4_k2
-
-    # rxn5: OF_Hb_Sb -> OF_Hb + $S_out; vol*(rxn5_k1*OF_Hb_Sb - rxn5_k2*OF_Hb*S_out)
-    p[8] = k_S_off_range[0]  # rxn5_k1
-    p[9] = k_S_on_range[0]  # rxn5_k2
+    p[4] = k_conf_range[0] # rxn4_k1
+    p[5] = k_conf_range[0]  # rxn4_k2
 
     # rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-    p[10] = k_conf_range[0]  # rxn6_k1
-    p[11] = k_conf_range[0]  # rxn6_k2
-
-    # rxn7: OF_Sb + $H_out -> OF_Hb_Sb; vol*(rxn7_k1*OF_Sb*H_out - rxn7_k2*OF_Hb_Sb)
-    p[12] = k_H_on_range[0]  # rxn7_k1
-    p[13] = k_H_off_range[0] # rxn7_k2
-
-    # rxn8: OF_Hb_Sb -> IF_Hb_Sb; vol*(rxn8_k1*OF_Hb_Sb - rxn8_k2*IF_Hb_Sb)
-    p[14] = k_conf_range[0] # rxn8_k1 
-    p[15] = k_conf_range[0] # rxn8_k2
-
-    # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
-    p[16] = k_H_off_range[0]  # rxn9_k1
-    p[17] = k_H_on_range[0]   # rxn9_k2   
-
-    # rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
-    p[18] = k_S_on_range[0]   # rxn10_k1
-    p[19] = k_S_off_range[0]  # rxn10_k2    
+    p[6] = k_conf_range[0]  # rxn6_k1
+    p[7] = k_conf_range[0]  # rxn6_k2
 
     # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-    p[20] = k_S_on_range[0] # rxn11_k1
-    p[21] = k_S_off_range[0]   # rxn11_k2    
+    p[8] = k_S_on_range[0] # rxn11_k1
+    p[9] = k_S_off_range[0]   # rxn11_k2    
 
     # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-    p[22] = k_H_off_range[0] # rxn12_k1
-    p[23] = k_H_on_range[0] # rxn12_k2    
+    p[10] = k_H_off_range[0] # rxn12_k1
+    #p[11] = k_H_on_range[0] # rxn12_k2    
 
     # experimental noise
-    p[24] = sigma_range[0] # sigma
+    #p[12] = sigma_range[0] # sigma
+    p[11] = sigma_range[0] # sigma
 
     # update selected parameters reference values 
-    p[2] = k_H_on
-    p[3] = k_H_off
-    p[4] = k_S_off
-    p[5] = k_S_on
+    p[0] = k_H_on
+    p[1] = k_H_off
+    p[2] = k_S_off
+    p[3] = k_S_on
+    p[4] = k_conf
+    p[5] = k_conf
     p[6] = k_conf
     p[7] = k_conf
-    p[10] = k_conf
-    p[11] = k_conf
-    p[20] = k_S_on
-    p[21] = k_S_off
-    p[22] = k_H_off
-    p[23] = k_H_on
-    p[24] = sigma
+    p[8] = k_S_on
+    p[9] = k_S_off
+    p[10] = k_H_off
+    #p[11] = k_H_on
+    #p[12] = sigma
+    p[11] = sigma
     
     return p
 
 
-def check_prior(p):
+def check_prior(p, s=0):
     '''set parameter values for reference model'''
-    s = 4
+    s = 0
     k_conf_range = (-1-s,5)
     k_H_on_range = (7-s,13)
     k_H_off_range = (0-s,6)
@@ -485,12 +419,14 @@ def check_prior(p):
 
 
     prior_dict = {}
-    prior_dict['k_conf'] = [k_conf_range, [0,1,6,7,10,11,14,15]]
-    prior_dict['k_H_on'] = [k_H_on_range, [2,12,17,23]]
-    prior_dict['k_H_off'] = [k_H_off_range, [3,13,16,22]]
-    prior_dict['k_S_on'] = [k_S_on_range, [5,9,18,20]]
-    prior_dict['k_S_off'] = [k_S_off_range, [4,8,19,21]]
-    prior_dict['sigma'] = [sigma_range, [24]]
+    prior_dict['k_conf'] = [k_conf_range, [4,5,6,7]]
+    prior_dict['k_H_on'] = [k_H_on_range, [0]]
+    # prior_dict['k_H_on'] = [k_H_on_range, [0,11]]
+    prior_dict['k_H_off'] = [k_H_off_range, [1,10]]
+    prior_dict['k_S_on'] = [k_S_on_range, [3,8]]
+    prior_dict['k_S_off'] = [k_S_off_range, [2,9]]
+    # prior_dict['sigma'] = [sigma_range, [12]]
+    prior_dict['sigma'] = [sigma_range, [11]]
 
     for key in prior_dict:
         tmp_range = prior_dict[key][0]
@@ -515,8 +451,8 @@ def energy_to_rate(p):
 
 ### intialization
 time_str = time.strftime("%Y%m%d_%H%M%S") 
-filename=f'DEBUG_full_transporter_{time_str}'
-new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/full_transporter/', f'{time_str}_full_transporter')
+filename=f'DEBUG_intermediate_transporter_{time_str}'
+new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter')
 new_dir.mkdir(parents=True, exist_ok=True)
 
 sigma_ref = 1e-13
@@ -526,30 +462,35 @@ k_S_on = np.log10(1e7)
 k_S_off = np.log10(1e3)
 k_conf = np.log10(1e2)
 
-p_synth = np.zeros(25)
-p_synth = p_synth - 13
-p_synth[2] = k_H_on
-p_synth[3] = k_H_off
-p_synth[4] = k_S_off
-p_synth[5] = k_S_on
+p_synth = np.zeros(12)
+p_synth[0] = k_H_on
+p_synth[1] = k_H_off
+p_synth[2] = k_S_off
+p_synth[3] = k_S_on
+p_synth[4] = k_conf
+p_synth[5] = k_conf
 p_synth[6] = k_conf
 p_synth[7] = k_conf
-p_synth[10] = k_conf
-p_synth[11] = k_conf
-p_synth[20] = k_S_on
-p_synth[21] = k_S_off
-p_synth[22] = k_H_off
-p_synth[23] = k_H_on
-p_synth[24] = sigma_ref
+p_synth[8] = k_S_on
+p_synth[9] = k_S_off
+p_synth[10] = k_H_off
+#p_synth[11] = k_H_on
+#p_synth[12] = sigma_ref
+p_synth[11] = sigma_ref
 print(p_synth)
+
 
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
-datafile = '/Users/georgeau/Desktop/GitHub/august/model_identification/affine_MCMC_PT/emcee_full_transporter_data_2stage_2ph_v2.csv'
+
+
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
-# print(log_likelihood(p_synth,y_obs,m))
+print(log_likelihood(p_synth,y_obs,m))
+exit()
+
 # p_ref = [0]*25
 # print(log_likelihood(set_reference_model_parameters(p_ref), y_obs, m))
 
@@ -557,54 +498,12 @@ y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()
 seed = 1234
 np.random.seed(seed)
 n_walkers = 50
-n_steps = int(1e2)
+n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
-n_dim = 25
+n_dim = 12
 n_temps = 4
 move_list = []
 
-# testing
-y_synth = y_obs
-
-p_ref_0 = [0]*25
-p_ref_0 = set_reference_model_parameters(p_ref_0, s=0)
-y_ref = simulate_model(p_ref_0,m)
-
-p_ref_4 = [0]*25
-p_ref_4 = set_reference_model_parameters(p_ref_4, s=4)
-y_ref2 = simulate_model(p_ref_4,m)
-
-
-n_cols = 26
-f = '/Users/georgeau/Desktop/research_data/local_macbook/full_transporter/20220107_191806_full_transporter/full_transporter_20220107_191806_data.csv'
-D_list = []
-col_list = [i+1 for i in range(n_cols)]  # only keep columns 1...n_p-1 
-D_tmp = np.genfromtxt(f, delimiter=',', skip_header=1,usecols=col_list).T
-logl_idx = np.argmax(D_tmp[-1])
-p_sampler = np.transpose(D_tmp[:-1])[logl_idx].tolist()
-print(np.argmax(D_tmp[-1]))
-print(max(D_tmp[-1]))  
-print(p_sampler)
-y_sample = simulate_model(p_sampler, m)
-
-plt.figure(figsize = (15, 10))
-plt.plot(y_synth, 'o', color='black', alpha=0.55, markersize=3, label='synthetic model w/o noise')
-plt.plot(y_ref, '--', alpha=0.55, label='ref model using prior lower bounds')
-plt.plot(y_ref2, '-.', alpha=0.55, label='ref model using prior lower bounds-1e4')
-plt.plot(y_sample,  alpha=0.55, label='max logl p set from sampling')
-plt.legend()
-plt.tight_layout()
-plt.title('flux traces for different models')
-plt.savefig(new_dir/'debugging_logl.png')
-
-print(np.sqrt(np.mean((y_ref-y_synth)**2)))
-print(np.sqrt(np.mean((y_ref2-y_synth)**2)))
-print(np.sqrt(np.mean((y_sample-y_synth)**2)))
-
-print(log_likelihood(p_ref_0,y_obs,m))
-print(log_likelihood(p_ref_4,y_obs,m))
-print(log_likelihood(p_sampler,y_obs,m))
-exit()
 # testing
 
 if use_pt_sampler==True:
@@ -612,7 +511,7 @@ if use_pt_sampler==True:
     for j in range(n_temps):
         pos_list = []
         for i in range(n_walkers):
-            p0_tmp = randomize_model_parameters(np.zeros(25))
+            p0_tmp = randomize_model_parameters(np.zeros(n_dim))
             pos_list.append(p0_tmp)
         p0_list.append(pos_list)
     p0 = np.asarray(p0_list)
@@ -651,31 +550,33 @@ else:
 #################################################################
 
 ### analysis
+# labels = [
+#     'rxn2_k1',
+#     'rxn2_k2',
+#     'rxn3_k1',
+#     'rxn3_k2',
+#     'rxn4_k1',
+#     'rxn4_k2',
+#     'rxn6_k1',
+#     'rxn6_k2',
+#     'rxn11_k1',
+#     'rxn11_k2',
+#     'rxn12_k1',
+#     'rxn12_k2',
+#     'sigma'
+# ]
 labels = [
-    'rxn1_k1',
-    'rxn1_k2',
     'rxn2_k1',
     'rxn2_k2',
     'rxn3_k1',
     'rxn3_k2',
     'rxn4_k1',
     'rxn4_k2',
-    'rxn5_k1',
-    'rxn5_k2',
     'rxn6_k1',
     'rxn6_k2',
-    'rxn7_k1',
-    'rxn7_k2',
-    'rxn8_k1',
-    'rxn8_k2',
-    'rxn9_k1',
-    'rxn9_k2',
-    'rxn10_k1',
-    'rxn10_k2',
     'rxn11_k1',
     'rxn11_k2',
     'rxn12_k1',
-    'rxn12_k2',
     'sigma'
 ]
 
@@ -686,7 +587,7 @@ with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
         f.write(f'datafile:{datafile}\nparameters:{labels}\nparameter reference values:{p_synth}\n')
 
 
-s=4
+s=0
 sigma_ref = 1e-13
 k_H_on = np.log10(1e10)
 k_H_off = np.log10(1e3)
@@ -704,124 +605,83 @@ sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
 
 ### boundary ranges
-bounds=[0]*25
-bounds[0] = k_conf_range  # rxn1_k1
-bounds[1] = k_conf_range  # rxn1_k2
+bounds=[0]*n_dim
 
 # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-bounds[2] = k_H_on_range # rxn2_k1
-bounds[3] = k_H_off_range  # rxn2_k2
+bounds[0] = k_H_on_range # rxn2_k1
+bounds[1] = k_H_off_range  # rxn2_k2
 
 # rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-bounds[4] = k_S_off_range  # rxn3_k1
-bounds[5] = k_S_on_range # rxn3_k2
+bounds[2] = k_S_off_range  # rxn3_k1
+bounds[3] = k_S_on_range # rxn3_k2
 
 # rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-bounds[6] = k_conf_range # rxn4_k1
-bounds[7] = k_conf_range # rxn4_k2
-
-# rxn5: OF_Hb_Sb -> OF_Hb + $S_out; vol*(rxn5_k1*OF_Hb_Sb - rxn5_k2*OF_Hb*S_out)
-bounds[8] = k_S_off_range # rxn5_k1
-bounds[9] = k_S_on_range # rxn5_k2
+bounds[4] = k_conf_range # rxn4_k1
+bounds[5] = k_conf_range # rxn4_k2
 
 # rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-bounds[10] = k_conf_range # rxn6_k1
-bounds[11] = k_conf_range # rxn6_k2
-
-# rxn7: OF_Sb + $H_out -> OF_Hb_Sb; vol*(rxn7_k1*OF_Sb*H_out - rxn7_k2*OF_Hb_Sb)
-bounds[12] = k_H_on_range # rxn7_k1
-bounds[13] = k_H_off_range  # rxn7_k2
-
-# rxn8: OF_Hb_Sb -> IF_Hb_Sb; vol*(rxn8_k1*OF_Hb_Sb - rxn8_k2*IF_Hb_Sb)
-bounds[14] = k_conf_range # rxn8_k1 
-bounds[15] = k_conf_range  # rxn8_k2
-
-# rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
-bounds[16] = k_H_off_range  # rxn9_k1
-bounds[17] = k_H_on_range   # rxn9_k2   
-
-# rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
-bounds[18] = k_S_on_range   # rxn10_k1
-bounds[19] = k_S_off_range   # rxn10_k2    
+bounds[6] = k_conf_range # rxn6_k1
+bounds[7] = k_conf_range # rxn6_k2
 
 # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-bounds[20] = k_S_on_range  # rxn11_k1
-bounds[21] = k_S_off_range   # rxn11_k2    
+bounds[8] = k_S_on_range  # rxn11_k1
+bounds[9] = k_S_off_range   # rxn11_k2    
 
 # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-bounds[22] = k_H_off_range  # rxn12_k1
-bounds[23] = k_H_on_range  # rxn12_k2    
+bounds[10] = k_H_off_range  # rxn12_k1
+# bounds[11] = k_H_on_range  # rxn12_k2    
 
 # experimental noise
-bounds[24] = sigma_range # sigma  
+# bounds[12] = sigma_range # sigma  
+bounds[11] = sigma_range # sigma  
 print(bounds)
 
-### reference values
-p_ref = np.zeros(25)
 
-p_ref[0] = k_conf_range[0]  # rxn1_k1
-p_ref[1] = k_conf_range[0]  # rxn1_k2
+### reference values
+p_ref = np.zeros(n_dim)
 
 # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-p_ref[2] = k_H_on_range[0] # rxn2_k1
-p_ref[3] = k_H_off_range[0]  # rxn2_k2
+p_ref[0] = k_H_on_range[0] # rxn2_k1
+p_ref[1] = k_H_off_range[0]  # rxn2_k2
 
 # rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-p_ref[4] = k_S_off_range[0]  # rxn3_k1
-p_ref[5] = k_S_on_range[0] # rxn3_k2
+p_ref[2] = k_S_off_range[0]  # rxn3_k1
+p_ref[3] = k_S_on_range[0] # rxn3_k2
 
 # rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-p_ref[6] = k_conf_range[0] # rxn4_k1
-p_ref[7] = k_conf_range[0] # rxn4_k2
-
-# rxn5: OF_Hb_Sb -> OF_Hb + $S_out; vol*(rxn5_k1*OF_Hb_Sb - rxn5_k2*OF_Hb*S_out)
-p_ref[8] = k_S_off_range[0] # rxn5_k1
-p_ref[9] = k_S_on_range[0] # rxn5_k2
+p_ref[4] = k_conf_range[0] # rxn4_k1
+p_ref[5] = k_conf_range[0] # rxn4_k2
 
 # rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-p_ref[10] = k_conf_range[0] # rxn6_k1
-p_ref[11] = k_conf_range[0] # rxn6_k2
-
-# rxn7: OF_Sb + $H_out -> OF_Hb_Sb; vol*(rxn7_k1*OF_Sb*H_out - rxn7_k2*OF_Hb_Sb)
-p_ref[12] = k_H_on_range[0] # rxn7_k1
-p_ref[13] = k_H_off_range[0]  # rxn7_k2
-
-# rxn8: OF_Hb_Sb -> IF_Hb_Sb; vol*(rxn8_k1*OF_Hb_Sb - rxn8_k2*IF_Hb_Sb)
-p_ref[14] = k_conf_range[0] # rxn8_k1 
-p_ref[15] = k_conf_range[0]  # rxn8_k2
-
-# rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
-p_ref[16] = k_H_off_range[0]  # rxn9_k1
-p_ref[17] = k_H_on_range[0]   # rxn9_k2   
-
-# rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
-p_ref[18] = k_S_on_range[0]   # rxn10_k1
-p_ref[19] = k_S_off_range[0]   # rxn10_k2    
+p_ref[6] = k_conf_range[0] # rxn6_k1
+p_ref[7] = k_conf_range[0] # rxn6_k2
 
 # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-p_ref[20] = k_S_on_range[0] # rxn11_k1
-p_ref[21] = k_S_off_range[0]   # rxn11_k2    
+p_ref[8] = k_S_on_range[0] # rxn11_k1
+p_ref[9] = k_S_off_range[0]   # rxn11_k2    
 
 # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-p_ref[22] = k_H_off_range[0] # rxn12_k1
-p_ref[23] = k_H_on_range[0]  # rxn12_k2    
+p_ref[10] = k_H_off_range[0] # rxn12_k1
+# p_ref[11] = k_H_on_range[0]  # rxn12_k2    
 
 # experimental noise
-p_ref[24] = sigma_range[0] # sigma
+# p_ref[12] = sigma_range[0] # sigma
+p_ref[11] = sigma_range[0] # sigma
 
-p_ref[2] = k_H_on
-p_ref[3] = k_H_off
-p_ref[4] = k_S_off
-p_ref[5] = k_S_on
+p_ref[0] = k_H_on
+p_ref[1] = k_H_off
+p_ref[2] = k_S_off
+p_ref[3] = k_S_on
+p_ref[4] = k_conf
+p_ref[5] = k_conf
 p_ref[6] = k_conf
 p_ref[7] = k_conf
-p_ref[10] = k_conf
-p_ref[11] = k_conf
-p_ref[20] = k_S_on
-p_ref[21] = k_S_off
-p_ref[22] = k_H_off
-p_ref[23] = k_H_on
-p_ref[24] = sigma_ref
+p_ref[8] = k_S_on
+p_ref[9] = k_S_off
+p_ref[10] = k_H_off
+# p_ref[11] = k_H_on
+# p_ref[12] = sigma_ref
+p_ref[11] = sigma_ref
 print(p_ref)
 
 
@@ -830,19 +690,28 @@ print(p_ref)
 # mcmc trajectory (before burn in)
 
 try:
-    samples = sampler.get_chain()
+    if use_pt_sampler == True:
+        samples = sampler.chain[0,:,:,:]
+        print(np.shape(samples))
+        print(np.size(samples))
+    else: 
+        samples = sampler.get_chain()
 
     fig, axes = plt.subplots(n_dim, figsize=(20, 15), sharex=True)
 
     for i in range(n_dim):
         ax = axes[i]
-        ax.plot(samples[:, :, i], "k", alpha=0.3)
+        if use_pt_sampler:
+            ax.plot(samples[:, :, i], "k", alpha=0.3)
+        else:
+            ax.plot(samples[:, :, i], "k", alpha=0.3)
         ax.set_ylabel(labels[i])
         ax.yaxis.set_label_coords(-0.1, 0.5)
 
     axes[-1].set_xlabel("step number");
     plt.savefig(new_dir/f'{filename}_traces.png')
 except:
+    print('failed to plot traces')
     pass
 
 # autocorrelation time (for measuring sampling performance)
@@ -897,12 +766,12 @@ plt.plot(y_obs, ls='None', color='black', marker='o',label="observed")
 plt.legend(fontsize=14)
 plt.savefig(new_dir/f'{filename}_example_plots.png')
 
-fig, axes = plt.subplots(5, 5, figsize=(10,10))
+fig, axes = plt.subplots(4, 4, figsize=(10,10))
 ax = axes.flatten()
 
 d_dict = {}
 
-ref_idx_list = [2,3,4,5,6,7,10,11,20,21,22,23,24]
+ref_idx_list = [0,1,2,3,4,5,6,7,8,9,10,11,12]
 flat_samples_T = np.transpose(flat_samples)
 for i, lbl in enumerate(labels):
     p_data = flat_samples_T[i]
