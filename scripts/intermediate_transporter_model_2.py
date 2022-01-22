@@ -501,9 +501,9 @@ p_synth[9] = k_S_off
 p_synth[10] = k_H_off
 #p_synth[11] = k_H_on
 #p_synth[12] = sigma_ref
-p_synth[11] = k_H_off
-p_synth[12] = k_H_on
-p_synth[13] = k_S_on
+p_synth[11] = -13
+p_synth[12] = -13
+p_synth[13] = -13
 p_synth[14] = sigma_ref
 print(p_synth)
 
@@ -511,20 +511,16 @@ print(p_synth)
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph_v2.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph_v3.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
+print(f'max logl (synthetic data and synthetic model): {log_likelihood(p_synth, y_obs, m)}')
 
-
-# p_ref = [0]*25
-# print(log_likelihood(set_reference_model_parameters(p_ref), y_obs, m))
-
-# exit()
 seed = 1234
 np.random.seed(seed)
 n_walkers = 50
-n_steps = int(1e5)
+n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_dim = 15
 n_temps = 4
@@ -724,9 +720,9 @@ p_ref[9] = k_S_off
 p_ref[10] = k_H_off
 # p_ref[11] = k_H_on
 # p_ref[12] = sigma_ref
-p_ref[11] = k_H_off
-p_ref[12] = k_H_on
-p_ref[13] = k_S_on
+# p_ref[11] = k_H_off
+# p_ref[12] = k_H_on
+# p_ref[13] = k_S_on
 p_ref[14] = sigma_ref
 print(p_ref)
 

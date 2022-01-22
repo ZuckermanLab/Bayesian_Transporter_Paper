@@ -497,10 +497,10 @@ y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()
 seed = 1234
 np.random.seed(seed)
 n_walkers = 50
-n_steps = int(1e5)
+n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_dim = 12
-n_temps = 4
+n_temps = 8
 move_list = []
 
 # testing
@@ -532,13 +532,14 @@ if use_pt_sampler==True:
     assert sampler.chain.shape == (n_temps, n_walkers, n_steps, n_dim)
 else:
     move_list=[
-        (mc.moves.StretchMove(), 1.0),
+        (mc.moves.DESnookerMove(), 1.0),
     ]
     p0_list = []
     for i in range(n_walkers):
-        p0_tmp = randomize_model_parameters(np.zeros(25))
+        p0_tmp = randomize_model_parameters(np.zeros(n_dim))
         p0_list.append(p0_tmp)
     p0 = np.asarray(p0_list)
+    print(np.shape(p0))
     assert(np.shape(p0) == (n_walkers,n_dim))
     ### sampling
     sampler = mc.EnsembleSampler(n_walkers, n_dim, log_probability, args=[y_obs,m], moves=move_list)
