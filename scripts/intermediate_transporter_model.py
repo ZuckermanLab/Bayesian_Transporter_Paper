@@ -8,6 +8,9 @@ import time
 import pathlib 
 import os
 
+# use less synthetic data (removes tails)
+less_data = True
+
 
 # check environment (fix this later)
 use_pt_sampler = True
@@ -60,8 +63,8 @@ def init_model(p):
             rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in);
 
             // Events:
-            E1: at (time >= 5.0): H_out = H_out_activation;
-            E2: at (time >= 10.0): H_out = 1e-7;
+            E1: at (time >= 5.0): H_out = H_out_activation, S_out = S_out_activation;
+            E2: at (time >= 10.0): H_out = 1e-7, S_out = 0.001;
 
             // Species initializations:
             H_out = 1e-07;
@@ -106,6 +109,7 @@ def init_model(p):
 
             // Variable initializations:
             H_out_activation = 5e-8;
+            S_out_activation = 0.001;
 
             // Rate constant initializations:
             rxn1_k1 = 0;
@@ -162,6 +166,11 @@ def init_model(p):
 def simulate_model(p, z):
     '''generates flux trace based on a set of parameters, p, and a Tellurium transporter model, z'''
 
+    # percentage of data to keep 
+    sf_1 = 0.3  # stage 2 (first pertubation stage)
+    sf_2 = 0.5  # stage 3 (second pertubation stage)
+    sf_3 = 0.5
+
     # reset z to initial
     z.resetToOrigin()
 
@@ -204,12 +213,23 @@ def simulate_model(p, z):
         D = z.simulate(t_0, t_f, n_iter, selections=['time', 'rxn9', 'rxn12'])
         y_calc = D['rxn9']+D['rxn12']
         #s1 = y_calc[:idx_s2+4:step_size]
+       
+     
         s2 = y_calc[idx_s2+4:2*idx_s2:step_size]
         s3 = y_calc[2*idx_s2+4::step_size]
 
+        if less_data:
+            
+            s2 = s2[:int(len(s2)*sf_1)]
+            s3 = s3[:int(len(s3)*sf_1)]
+
         y_pred_1 = np.hstack([s2,s3])
     except:
+        print('simulation error')
         return np.zeros(500)
+
+
+    ### experiment 2
 
     # reset z to initial
     z.resetToOrigin()
@@ -254,9 +274,69 @@ def simulate_model(p, z):
         #s1_2 = y_calc2[:idx_s2+4:step_size]
         s2_2 = y_calc2[idx_s2+4:2*idx_s2:step_size]
         s3_2 = y_calc2[2*idx_s2+4::step_size]
+        if less_data:
+            s2_2 = s2_2[:int(len(s2_2)*sf_2)]
+            s3_2 = s3_2[:int(len(s3_2)*sf_2)]
+
         y_pred_2 = np.hstack([s2_2,s3_2])
-        y_pred = np.hstack([y_pred_1, y_pred_2])
+        #y_pred = np.hstack([y_pred_1, y_pred_2])
     except:
+        print('error in simulations')
+        return np.zeros(500)
+
+    ### experiment 3
+    
+    # reset z to initial
+    z.resetToOrigin()
+
+    #update pH
+    z.H_out_activation = 5e-7
+    z.S_out_activation = 0.002
+
+    # update rate constants
+    z.rxn2_k1 = 10**p[0]
+    z.rxn2_k2 = 10**p[1]
+    z.rxn3_k1 = 10**p[2]
+    z.rxn3_k2 = 10**p[3]
+    z.rxn4_k1 = 10**p[4]
+    z.rxn4_k2 = 10**p[5]
+    z.rxn6_k1 = 10**p[6]
+    z.rxn6_k2 = 10**p[7]
+    z.rxn11_k1 = 10**p[8]
+    z.rxn11_k2 = 10**p[9]
+    z.rxn12_k1 = 10**p[10]
+    #z.rxn12_k2 = 10**p[11]
+
+    # set tolerances for simulations
+    z.integrator.absolute_tolerance = 1e-19
+    z.integrator.relative_tolerance = 1e-17
+
+    n_stage = 3  # number of stages: equilibration, activation, reversal
+    t_stage = 5  # time length for each stage (in sec) to allow for equilibration
+    n_iter_stage = 5e3  # how many how many ODE solver iterations per stage
+    t_res = 0.04  # time resolution (sec)
+    n_samples_stage = int(t_stage / t_res)  # how many data points per stage
+
+    t_0 = 0
+    t_f = int(np.floor(n_stage * t_stage))
+    n_iter = int(np.floor(n_iter_stage * n_stage))
+    idx_s2 = int(np.floor(n_iter_stage))
+    step_size = int(np.floor(n_iter_stage / n_samples_stage))
+
+    try:
+        D3 = z.simulate(t_0, t_f, n_iter, selections=['time', 'rxn9', 'rxn12'])
+        y_calc3 = D3['rxn9']+D3['rxn12']
+        #s1_2 = y_calc2[:idx_s2+4:step_size]
+        s2_3 = y_calc3[idx_s2+4:2*idx_s2:step_size]
+        s3_3 = y_calc3[2*idx_s2+4::step_size]
+        if less_data:
+            s2_3 = s2_3[:int(len(s2_3)*sf_3)]
+            s3_3 = s3_3[:int(len(s3_3)*sf_3)]
+
+        y_pred_3 = np.hstack([s2_3,s3_3])
+        y_pred = np.hstack([y_pred_1, y_pred_2, y_pred_3])
+    except:
+        print('error in simulations')
         return np.zeros(500)
 
     return y_pred
@@ -477,30 +557,26 @@ p_synth[10] = k_H_off
 #p_synth[11] = k_H_on
 #p_synth[12] = sigma_ref
 p_synth[11] = sigma_ref
-print(p_synth)
-
 
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_2ph.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_3ph_short_data.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
-
+max_logl_synth = log_likelihood(p_synth, y_obs, m)
 
 
 # p_ref = [0]*25
-# print(log_likelihood(set_reference_model_parameters(p_ref), y_obs, m))
 
-# exit()
 seed = 1234
 np.random.seed(seed)
-n_walkers = 50
+n_walkers = 24
 n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_dim = 12
-n_temps = 8
+n_temps = 4
 move_list = []
 
 # testing
@@ -532,7 +608,8 @@ if use_pt_sampler==True:
     assert sampler.chain.shape == (n_temps, n_walkers, n_steps, n_dim)
 else:
     move_list=[
-        (mc.moves.DESnookerMove(), 1.0),
+        (mc.moves.DESnookerMove(), 0.5),
+        (mc.moves.StretchMove(), 0.5)
     ]
     p0_list = []
     for i in range(n_walkers):
@@ -585,6 +662,8 @@ with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
         f.write(f'timestamp:{time_str}\n')
         f.write(f'n walkers:{n_walkers}\nn steps/walker:{n_steps}\nn temps:{n_temps}\nusing PT sampler:{use_pt_sampler}\nmoves:{move_list}\n' )  
         f.write(f'datafile:{datafile}\nparameters:{labels}\nparameter reference values:{p_synth}\n')
+        f.write(f'less data: {less_data}\nn data points: {len(y_obs)}\n')
+        f.write(f'max logl (synth): {max_logl_synth}\n')
 
 
 s=0
@@ -738,6 +817,11 @@ else:
     flat_samples = sampler.get_chain(discard=n_burn, flat=True)
     logl = sampler.get_log_prob(discard=n_burn,  flat=True)
 
+logl_max_sample = np.max(logl)
+with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
+        f.write(f'max logl sampled: {logl_max_sample}\n')
+     
+
 print(np.size(flat_samples))
 print(np.shape(flat_samples))
 print(np.max(logl))
@@ -764,12 +848,13 @@ plt.figure(figsize = (15, 10))
 for ind in inds:
     sample = flat_samples[ind]
     y_pred_i = simulate_model(sample,m)
-    plt.plot(y_pred_i, alpha=0.1, color='grey')
+    plt.plot(y_pred_i, alpha=0.1, color='black')
 plt.title('y_pred and y_obs')
 plt.ylabel('y')
 plt.xlabel('x')
-plt.plot(y_obs, ls='None', color='black', marker='o',label="observed")
+plt.plot(y_obs, ls='None', color='orange', marker='o',label="observed", alpha=0.6)
 plt.legend(fontsize=14)
+plt.tight_layout()
 plt.savefig(new_dir/f'{filename}_example_plots.png')
 
 fig, axes = plt.subplots(4, 4, figsize=(10,10))
