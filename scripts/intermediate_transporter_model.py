@@ -347,11 +347,17 @@ def log_likelihood(theta, y_obs, model):
     #print(theta)
     #curr_sigma = 10**theta[-1]
     curr_sigma = theta[-1]
+    
     y_pred = simulate_model(theta, model)
 
+
+
     # calculate normal log likelihood
+  
     logl = -len(y_obs) * np.log(np.sqrt(2.0 * np.pi) * curr_sigma)
+   
     logl += -np.sum((y_obs - y_pred) ** 2.0) / (2.0 * curr_sigma ** 2.0) 
+  
     return logl
 
 
@@ -566,13 +572,28 @@ datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_in
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 max_logl_synth = log_likelihood(p_synth, y_obs, m)
+print(max_logl_synth)
+print(p_synth)
+p_sample = [1.00209142e+01, 3.10251346e+00, 2.84696666e+00, 6.80629869e+00,
+ 2.12910157e+00, 2.92907531e+00, 1.97572376e+00, 2.12511228e+00,
+ 8.14206985e+00, 3.16327798e+00, 3.01175369e+00, 1.1e-13]
+max_logl_sample = log_likelihood(p_sample, y_obs, m)
+print(p_sample)
+print(max_logl_sample)
+y_ref = simulate_model(p_sample,m)
+plt.figure(figsize=(15,10))
+plt.plot(y_ref, '--', label='y_synth_ref', color='green', alpha=0.9)
+plt.plot(y_obs, 'o', label='y_obs', color='black', alpha=0.7)
+plt.plot(y_ref, label='y_sample_max', color='red', alpha=0.7)
+plt.legend()
+plt.savefig('test.png')
 
 
 # p_ref = [0]*25
 
 seed = 1234
 np.random.seed(seed)
-n_walkers = 24
+n_walkers = 50
 n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_dim = 12
