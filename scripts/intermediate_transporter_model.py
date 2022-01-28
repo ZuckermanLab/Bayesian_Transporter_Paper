@@ -7,9 +7,14 @@ import pandas as pd
 import time
 import pathlib 
 import os
+from datetime import datetime
+
 
 # use less synthetic data (removes tails)
 less_data = True
+
+# use 3 experiments
+three_exp = False
 
 
 # check environment (fix this later)
@@ -167,9 +172,9 @@ def simulate_model(p, z):
     '''generates flux trace based on a set of parameters, p, and a Tellurium transporter model, z'''
 
     # percentage of data to keep 
-    sf_1 = 0.3  # stage 2 (first pertubation stage)
-    sf_2 = 0.5  # stage 3 (second pertubation stage)
-    sf_3 = 0.5
+    sf_1 = 0.125  # experiment 1 (.3)
+    sf_2 = 0.125  # experiment 2 (.5)
+    sf_3 = 0.125   # experiment 3
 
     # reset z to initial
     z.resetToOrigin()
@@ -279,65 +284,66 @@ def simulate_model(p, z):
             s3_2 = s3_2[:int(len(s3_2)*sf_2)]
 
         y_pred_2 = np.hstack([s2_2,s3_2])
-        #y_pred = np.hstack([y_pred_1, y_pred_2])
+        if three_exp == False:
+            y_pred = np.hstack([y_pred_1, y_pred_2])
     except:
         print('error in simulations')
         return np.zeros(500)
 
     ### experiment 3
-    
-    # reset z to initial
-    z.resetToOrigin()
+    if three_exp == True:
+        # reset z to initial
+        z.resetToOrigin()
 
-    #update pH
-    z.H_out_activation = 5e-7
-    z.S_out_activation = 0.002
+        #update pH
+        z.H_out_activation = 5e-7
+        z.S_out_activation = 0.002
 
-    # update rate constants
-    z.rxn2_k1 = 10**p[0]
-    z.rxn2_k2 = 10**p[1]
-    z.rxn3_k1 = 10**p[2]
-    z.rxn3_k2 = 10**p[3]
-    z.rxn4_k1 = 10**p[4]
-    z.rxn4_k2 = 10**p[5]
-    z.rxn6_k1 = 10**p[6]
-    z.rxn6_k2 = 10**p[7]
-    z.rxn11_k1 = 10**p[8]
-    z.rxn11_k2 = 10**p[9]
-    z.rxn12_k1 = 10**p[10]
-    #z.rxn12_k2 = 10**p[11]
+        # update rate constants
+        z.rxn2_k1 = 10**p[0]
+        z.rxn2_k2 = 10**p[1]
+        z.rxn3_k1 = 10**p[2]
+        z.rxn3_k2 = 10**p[3]
+        z.rxn4_k1 = 10**p[4]
+        z.rxn4_k2 = 10**p[5]
+        z.rxn6_k1 = 10**p[6]
+        z.rxn6_k2 = 10**p[7]
+        z.rxn11_k1 = 10**p[8]
+        z.rxn11_k2 = 10**p[9]
+        z.rxn12_k1 = 10**p[10]
+        #z.rxn12_k2 = 10**p[11]
 
-    # set tolerances for simulations
-    z.integrator.absolute_tolerance = 1e-19
-    z.integrator.relative_tolerance = 1e-17
+        # set tolerances for simulations
+        z.integrator.absolute_tolerance = 1e-19
+        z.integrator.relative_tolerance = 1e-17
 
-    n_stage = 3  # number of stages: equilibration, activation, reversal
-    t_stage = 5  # time length for each stage (in sec) to allow for equilibration
-    n_iter_stage = 5e3  # how many how many ODE solver iterations per stage
-    t_res = 0.04  # time resolution (sec)
-    n_samples_stage = int(t_stage / t_res)  # how many data points per stage
+        n_stage = 3  # number of stages: equilibration, activation, reversal
+        t_stage = 5  # time length for each stage (in sec) to allow for equilibration
+        n_iter_stage = 5e3  # how many how many ODE solver iterations per stage
+        t_res = 0.04  # time resolution (sec)
+        n_samples_stage = int(t_stage / t_res)  # how many data points per stage
 
-    t_0 = 0
-    t_f = int(np.floor(n_stage * t_stage))
-    n_iter = int(np.floor(n_iter_stage * n_stage))
-    idx_s2 = int(np.floor(n_iter_stage))
-    step_size = int(np.floor(n_iter_stage / n_samples_stage))
+        t_0 = 0
+        t_f = int(np.floor(n_stage * t_stage))
+        n_iter = int(np.floor(n_iter_stage * n_stage))
+        idx_s2 = int(np.floor(n_iter_stage))
+        step_size = int(np.floor(n_iter_stage / n_samples_stage))
 
-    try:
-        D3 = z.simulate(t_0, t_f, n_iter, selections=['time', 'rxn9', 'rxn12'])
-        y_calc3 = D3['rxn9']+D3['rxn12']
-        #s1_2 = y_calc2[:idx_s2+4:step_size]
-        s2_3 = y_calc3[idx_s2+4:2*idx_s2:step_size]
-        s3_3 = y_calc3[2*idx_s2+4::step_size]
-        if less_data:
-            s2_3 = s2_3[:int(len(s2_3)*sf_3)]
-            s3_3 = s3_3[:int(len(s3_3)*sf_3)]
+        try:
+            D3 = z.simulate(t_0, t_f, n_iter, selections=['time', 'rxn9', 'rxn12'])
+            y_calc3 = D3['rxn9']+D3['rxn12']
+            #s1_2 = y_calc2[:idx_s2+4:step_size]
+            s2_3 = y_calc3[idx_s2+4:2*idx_s2:step_size]
+            s3_3 = y_calc3[2*idx_s2+4::step_size]
+            if less_data:
+                s2_3 = s2_3[:int(len(s2_3)*sf_3)]
+                s3_3 = s3_3[:int(len(s3_3)*sf_3)]
 
-        y_pred_3 = np.hstack([s2_3,s3_3])
-        y_pred = np.hstack([y_pred_1, y_pred_2, y_pred_3])
-    except:
-        print('error in simulations')
-        return np.zeros(500)
+            y_pred_3 = np.hstack([s2_3,s3_3])
+            y_pred = np.hstack([y_pred_1, y_pred_2, y_pred_3])
+        except:
+            print('error in simulations')
+            return np.zeros(500)
 
     return y_pred
 
@@ -536,6 +542,9 @@ def energy_to_rate(p):
 ##### TESTING
 
 ### intialization
+seed = 1234
+np.random.seed(seed)
+start_time = datetime.now()
 time_str = time.strftime("%Y%m%d_%H%M%S") 
 filename=f'DEBUG_intermediate_transporter_{time_str}'
 new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter')
@@ -568,15 +577,29 @@ m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/emcee_intermediate_transporter_data_2stage_3ph_short_data.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_8th_data.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
+
 max_logl_synth = log_likelihood(p_synth, y_obs, m)
 print(max_logl_synth)
 print(p_synth)
-p_sample = [1.00209142e+01, 3.10251346e+00, 2.84696666e+00, 6.80629869e+00,
- 2.12910157e+00, 2.92907531e+00, 1.97572376e+00, 2.12511228e+00,
- 8.14206985e+00, 3.16327798e+00, 3.01175369e+00, 1.1e-13]
+
+p_sample = [
+10.01273735,
+	3.038145705	,
+    2.973598844	,
+    6.958673201	,
+    2.056683668	,
+    2.069266391	,
+    1.978988834	,
+    2.048025077	,
+    6.646290822	,
+    2.572064045	,
+    3.018076693	,
+    1.08E-13,
+]
+
 max_logl_sample = log_likelihood(p_sample, y_obs, m)
 print(p_sample)
 print(max_logl_sample)
@@ -591,8 +614,6 @@ plt.savefig('test.png')
 
 # p_ref = [0]*25
 
-seed = 1234
-np.random.seed(seed)
 n_walkers = 50
 n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
@@ -642,7 +663,7 @@ else:
     ### sampling
     sampler = mc.EnsembleSampler(n_walkers, n_dim, log_probability, args=[y_obs,m], moves=move_list)
     sampler.run_mcmc(p0, int(n_steps+n_burn), progress=True)
-
+end_time = datetime.now()
 
 
 #################################################################
@@ -683,7 +704,7 @@ with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
         f.write(f'timestamp:{time_str}\n')
         f.write(f'n walkers:{n_walkers}\nn steps/walker:{n_steps}\nn temps:{n_temps}\nusing PT sampler:{use_pt_sampler}\nmoves:{move_list}\n' )  
         f.write(f'datafile:{datafile}\nparameters:{labels}\nparameter reference values:{p_synth}\n')
-        f.write(f'less data: {less_data}\nn data points: {len(y_obs)}\n')
+        f.write(f'less data: {less_data}\nn data points: {len(y_obs)}\n3 experiments: {three_exp}')
         f.write(f'max logl (synth): {max_logl_synth}\n')
 
 
@@ -791,7 +812,8 @@ print(p_ref)
 
 
 if use_pt_sampler == True:
-    samples = sampler.chain[0,:,:,:]
+
+    samples = np.transpose(sampler.chain[0,:,:,:])
     print(np.shape(samples))
     print(np.size(samples))
     fig, axes = plt.subplots(n_dim, figsize=(20, 15), sharex=True)
@@ -803,6 +825,7 @@ if use_pt_sampler == True:
         
         for j in range(n_walkers):
             ax.plot(samples[i][j*n_steps:((j+1)*n_steps)-1], "k", alpha=0.1)
+            
         ax.axhline(p_ref[i], linestyle='--', color='red', alpha=0.7)
     axes[-1].set_xlabel("step number");
     plt.savefig(new_dir/f'{filename}_traces.png')
@@ -841,7 +864,9 @@ else:
 logl_max_sample = np.max(logl)
 with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
         f.write(f'max logl sampled: {logl_max_sample}\n')
-     
+        f.write(f'{filename}_data.csv\n')
+        f.write('wall clock: {}'.format(end_time - start_time))
+
 
 print(np.size(flat_samples))
 print(np.shape(flat_samples))
@@ -878,7 +903,7 @@ plt.legend(fontsize=14)
 plt.tight_layout()
 plt.savefig(new_dir/f'{filename}_example_plots.png')
 
-fig, axes = plt.subplots(4, 4, figsize=(10,10))
+fig, axes = plt.subplots(3, 4, figsize=(10,10))
 ax = axes.flatten()
 
 d_dict = {}
