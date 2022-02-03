@@ -15,7 +15,7 @@ less_data = True
 data_amount = 1 # 0.5 = keep 50% of data per experiment stage
 
 # use 3 experiments
-three_exp = True
+three_exp = False
 
 
 
@@ -45,6 +45,18 @@ def init_model(p):
     ### note: p[-1] is sigma -not rate constant!
 
     theta = [10**i for i in p]
+    rxn10_k2 = (theta[0]*theta[2]*theta[4]*theta[6]*theta[11]*theta[13])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[12])
+    rxn12_k2 = (theta[0]*theta[2]*theta[4]*theta[6]*theta[8]*theta[10])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[9])
+
+    print(theta)
+    print('cycle constraints')
+    print(rxn10_k2,rxn12_k2)
+    theta2 = theta.copy()
+    theta2[-1] = rxn10_k2
+    theta2.append(rxn12_k2)
+    print(theta2)
+
+
     antimony_string = f"""
             // Created by libAntimony v2.12.0
             model transporter_full()
@@ -140,12 +152,12 @@ def init_model(p):
             rxn9_k2 = {theta[12]};
             rxn10_k1 = {theta[13]};
             rxn10_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[11]*theta[13])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[12])};
+            
             rxn11_k1 = {theta[8]};
             rxn11_k2 = {theta[9]};
             rxn12_k1 = {theta[10]};
             rxn12_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[8]*theta[10])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[9])};
-
-            rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in);
+           
 
             // Other declarations:
             const vol, rxn1_k1, rxn1_k2, rxn2_k1, rxn2_k2, rxn3_k1, rxn3_k2;
@@ -179,6 +191,9 @@ def simulate_model(p, z):
     sf_2 = data_amount  # experiment 2 (.5)
     sf_3 = data_amount   # experiment 3
 
+
+    print(z.rxn10_k2)
+    print(z.rxn12_k2)
     # reset z to initial
     z.resetToOrigin()
 
@@ -583,7 +598,7 @@ k_S_off = np.log10(1e3)
 k_conf = np.log10(1e2)
 
 n_dim = 15
-p_synth = np.zeros(15)
+p_synth = np.zeros(n_dim)
 p_synth[0] = k_H_on
 p_synth[1] = k_H_off
 p_synth[2] = k_S_off
@@ -592,20 +607,39 @@ p_synth[4] = k_conf
 p_synth[5] = k_conf
 p_synth[6] = k_conf
 p_synth[7] = k_conf
+
 p_synth[8] = k_S_on
 p_synth[9] = k_S_off
 p_synth[10] = k_H_off
 
+
 # 'unused' parameters
-p_synth[11] = k_H_off-3
-p_synth[12] = k_H_on-3
-p_synth[13] = k_S_on-3
+# p_synth[11] = k_H_off-3
+# p_synth[12] = k_H_on-3
+# p_synth[13] = k_S_on-3
+p_synth[11] = -10
+p_synth[12] = -10
+p_synth[13] = -10
+
+# # # 'unused' parameters
+# p_synth[11] = k_H_off
+# p_synth[12] = k_H_on
+# p_synth[13] = k_S_on
+
 
 # data noise
 p_synth[14] = sigma_ref
 
+
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
+
+# import matplotlib
+# matplotlib.use('tkagg')
+# plt.plot(y_ref)
+# plt.show()
+# exit()
+
 
 # debugging
 # y_obs = y_ref + np.random.normal(0,sigma_ref,np.size(y_ref))
@@ -617,7 +651,7 @@ y_ref = simulate_model(p_synth,m)
 # pd.DataFrame(y_obs, columns=['y_obs']).to_csv('t_2c_2exp_2stage_all_data.csv')
 # exit()
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_3exp_2stage_all_data.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
@@ -625,11 +659,151 @@ max_logl_synth = log_likelihood(p_synth, y_obs, m)
 print(max_logl_synth)
 print(p_synth)
 
+# testing 
+import itertools
+xyz_list = [
+    list([ 0, 1, 2, 3, 3.1, 3.2, 3.3, 3.4, 3.47168725, 3.5, 3.6, 3.7, 3.8, 3.9, 4,5,6]),
+    list([ 10.24951304]),
+    list([ 9.689187854]),
+]
+coord_list = list(itertools.product(*xyz_list))
+logl_list = []
+for i in range(len(coord_list)):
+    p_tmp = np.zeros_like(p_synth)
+    p_tmp[0] = 9.970677058
+    p_tmp[1] = 3.017513926
+    p_tmp[2] = 3.477095606
+    p_tmp[3] = 7.387941133
+    p_tmp[4] = 1.989579224
+    p_tmp[5] = 2.466297453
+    p_tmp[6] = 1.897578906
+    p_tmp[7] = 1.997958304
+    p_tmp[8] = 7.657318768
+    p_tmp[9] = 3.188454235
+    p_tmp[10] = 2.999722959
+    # 'unused' parameters
+    p_tmp[11] = coord_list[i][0]
+    p_tmp[12] = coord_list[i][1]
+    p_tmp[13] = coord_list[i][2]
+
+    # data noise
+    p_tmp[14] = 9.74E-14
+    logl_list.append(log_likelihood(p_tmp,y_obs,m))
+
+df1 = pd.DataFrame(coord_list, columns=['x','y','z'])
+df1['logl'] = logl_list
+print(df1)
+print(df1.iloc[np.argmax(df1['logl'])])
+
+p2 = [10,	3.017513926,	3.477095606,	7.387941133,	1.989579224,	2.466297453,	1.897578906,	1.997958304,	7.657318768,	3.188454235,	2.999722959,	3.47168725,	10.24951304,	9.689187854,	9.74E-14]
+print(log_likelihood(p2, y_obs, m))
+
+n_dim = 15
+p_synth2 = np.zeros(n_dim)
+p_synth2[0] = k_H_on
+p_synth2[1] = k_H_off
+p_synth2[2] = k_S_off
+p_synth2[3] = k_S_on
+p_synth2[4] = k_conf
+p_synth2[5] = k_conf
+p_synth2[6] = k_conf
+p_synth2[7] = k_conf
+
+p_synth2[8] = -10
+p_synth2[9] = -10
+p_synth2[10] = -10
+
+# 'unused' parameters
+p_synth2[11] = k_H_off
+p_synth2[12] = k_H_on
+p_synth2[13] = k_S_on
+
+p_synth2[14] = sigma_ref
+
+n_dim = 15
+p_synth3 = np.zeros(n_dim)
+p_synth3[0] = k_H_on
+p_synth3[1] = k_H_off
+p_synth3[2] = k_S_off
+p_synth3[3] = k_S_on
+p_synth3[4] = k_conf
+p_synth3[5] = k_conf
+p_synth3[6] = k_conf
+p_synth3[7] = k_conf
+
+p_synth3[8] = k_S_on
+p_synth3[9] = k_S_off
+p_synth3[10] = k_H_off
+
+# 'unused' parameters
+p_synth3[11] = k_H_off
+p_synth3[12] = k_H_on
+p_synth3[13] = k_S_on
+
+
+# data noise
+p_synth3[14] = sigma_ref
+
+
+print(p_synth)
+print(p_synth2)
+print(p_synth3)
+
+
+
+y_tmp1 = simulate_model(p_synth2, m)
+#y_tmp2 = simulate_model(p_synth3, m)
+
+plt.figure(figsize=(15,10))
+#plt.plot(y_ref, label='p set 1 - cycle 1 only')
+plt.plot(y_tmp1, label='p set 2 - cycle 2 only')
+#plt.plot(y_tmp2, label='p set 1 - cycle 1 and 2')
+plt.legend()
+plt.savefig('test.png')
+
+exit()
+
+exit()
+
+p_sample1 = [
+    9.970677058,	
+    3.017513926,
+    3.477095606,	
+    7.387941133,	
+    1.989579224,
+    2.466297453,
+    1.897578906,
+    1.997958304,
+    7.657318768,
+    3.188454235,
+    2.999722959,
+    3.47168725,
+    10.24951304,
+    9.689187854,
+    9.74E-14
+]
+
+max_logl_sample1 = log_likelihood(p_sample1, y_obs, m)
+print(max_logl_sample1)
+print(p_sample1)
+y_sample = simulate_model(p_sample1,m)
+
+
+plt.figure(figsize=(15,10))
+plt.plot(y_obs, 'o', color='black', alpha=0.75, label='synth obs.')
+plt.plot(y_ref, color='green', alpha=0.75, label='synth ref.')
+plt.plot(y_sample, '--', color='red', alpha=0.75, label='sampled')
+plt.legend()
+plt.savefig('test.png')
+print(np.sqrt(np.mean(np.square(y_ref-y_sample))))
+print(np.sqrt(np.mean(np.square(y_obs-y_sample))))
+print(np.sqrt(np.mean(np.square(y_obs-y_ref))))
+exit()
 
 # p_ref = [0]*25
 
 n_walkers = 50
-n_steps = int(1e1)
+n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_temps = 4
 move_list = []
