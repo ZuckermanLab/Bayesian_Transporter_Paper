@@ -8,17 +8,17 @@ import time
 import pathlib 
 import os
 from datetime import datetime
+import pprint
 
+import matplotlib
+matplotlib.use('tkagg')
 
 # use less synthetic data (removes tails)
 less_data = True
 data_amount = 1 # 0.5 = keep 50% of data per experiment stage
 
 # use 3 experiments
-three_exp = False
-
-
-
+three_exp = True
 
 # check environment (fix this later)
 use_pt_sampler = True
@@ -41,21 +41,41 @@ import emcee as mc
 
 
 def init_model(p):
+    '''create initial tellurium model'''
 
-    ### note: p[-1] is sigma -not rate constant!
+    # # transporter reference 
+    # p[0] = log_rxn2_k1
+    # p[1] = log_rxn2_k2
+    # p[2] = log_rxn3_k1
+    # p[3] = log_rxn3_k2
+    # p[4] = log_rxn4_k1
+    # p[5] = log_rxn4_k2
+    # p[6] = log_rxn6_k1
+    # p[7] = log_rxn6_k2
 
-    theta = [10**i for i in p]
-    rxn10_k2 = (theta[0]*theta[2]*theta[4]*theta[6]*theta[11]*theta[13])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[12])
-    rxn12_k2 = (theta[0]*theta[2]*theta[4]*theta[6]*theta[8]*theta[10])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[9])
+    # # cycle 1
+    # p[8] = log_rxn11_k1
+    # p[9] = log_rxn11_k2
+    # p[10] = log_rxn12_k1
 
-    print(theta)
-    print('cycle constraints')
-    print(rxn10_k2,rxn12_k2)
-    theta2 = theta.copy()
-    theta2[-1] = rxn10_k2
-    theta2.append(rxn12_k2)
-    print(theta2)
+    # # cycle 2
+    # p[11] = log_rxn9_k1
+    # p[12] = log_rxn9_k2
+    # p[13] = log_rxn10_k1
 
+    # cycle 1 constraint
+    c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+    c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+    log_rxn12_k2 = np.log10(c1_fwd/c1_rev_wo_rxn12_k2)
+
+    print(log_rxn12_k2,10**log_rxn12_k2)
+
+    # cycle 2 constraint
+    c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
+    c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
+    log_rxn10_k2 = np.log10(c2_fwd/c2_rev_wo_rxn10_k2)
+
+    print(log_rxn10_k2,10**log_rxn10_k2)
 
     antimony_string = f"""
             // Created by libAntimony v2.12.0
@@ -134,29 +154,29 @@ def init_model(p):
             // Rate constant initializations:
             rxn1_k1 = 0;
             rxn1_k2 = 0;
-            rxn2_k1 = {theta[0]};
-            rxn2_k2 = {theta[1]};
-            rxn3_k1 = {theta[2]};
-            rxn3_k2 = {theta[3]};
-            rxn4_k1 = {theta[4]};
-            rxn4_k2 = {theta[5]};
+            rxn2_k1 = {10**p[0]};
+            rxn2_k2 = {10**p[1]};
+            rxn3_k1 = {10**p[2]};
+            rxn3_k2 = {10**p[3]};
+            rxn4_k1 = {10**p[4]};
+            rxn4_k2 = {10**p[5]};
             rxn5_k1 = 0;
             rxn5_k2 = 0;
-            rxn6_k1 = {theta[6]};
-            rxn6_k2 = {theta[7]};
+            rxn6_k1 = {10**p[6]};
+            rxn6_k2 = {10**p[7]};
             rxn7_k1 = 0;
             rxn7_k2 = 0;
             rxn8_k1 = 0;
             rxn8_k2 = 0;
-            rxn9_k1 = {theta[11]};
-            rxn9_k2 = {theta[12]};
-            rxn10_k1 = {theta[13]};
-            rxn10_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[11]*theta[13])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[12])};
+            rxn9_k1 = {10**p[11]};
+            rxn9_k2 = {10**p[12]};
+            rxn10_k1 = {10**p[13]};
+            rxn10_k2 = {10**log_rxn10_k2};
             
-            rxn11_k1 = {theta[8]};
-            rxn11_k2 = {theta[9]};
-            rxn12_k1 = {theta[10]};
-            rxn12_k2 = {(theta[0]*theta[2]*theta[4]*theta[6]*theta[8]*theta[10])/(theta[1]*theta[3]*theta[5]*theta[7]*theta[9])};
+            rxn11_k1 = {10**p[8]};
+            rxn11_k2 = {10**p[9]};
+            rxn12_k1 = {10**p[10]};
+            rxn12_k2 = {10**log_rxn12_k2};
            
 
             // Other declarations:
@@ -186,14 +206,36 @@ def init_model(p):
 def simulate_model(p, z):
     '''generates flux trace based on a set of parameters, p, and a Tellurium transporter model, z'''
 
+    # # transporter reference 
+    # p[0] = log_rxn2_k1
+    # p[1] = log_rxn2_k2
+    # p[2] = log_rxn3_k1
+    # p[3] = log_rxn3_k2
+    # p[4] = log_rxn4_k1
+    # p[5] = log_rxn4_k2
+    # p[6] = log_rxn6_k1
+    # p[7] = log_rxn6_k2
+
+    # # cycle 1
+    # p[8] = log_rxn11_k1
+    # p[9] = log_rxn11_k2
+    # p[10] = log_rxn12_k1
+
+    # # cycle 2
+    # p[11] = log_rxn9_k1
+    # p[12] = log_rxn9_k2
+    # p[13] = log_rxn10_k1
+
+    print('simulate model')
+    pprint.pprint(p)
+
+
     # percentage of data to keep 
     sf_1 = data_amount  # experiment 1 (.3)
     sf_2 = data_amount  # experiment 2 (.5)
     sf_3 = data_amount   # experiment 3
 
-
-    print(z.rxn10_k2)
-    print(z.rxn12_k2)
+    ### experiment 1
     # reset z to initial
     z.resetToOrigin()
 
@@ -201,7 +243,6 @@ def simulate_model(p, z):
     z.H_out_activation = 5e-8
 
     # update rate constants
-
     z.rxn2_k1 = 10**p[0]
     z.rxn2_k2 = 10**p[1]
     z.rxn3_k1 = 10**p[2]
@@ -210,20 +251,39 @@ def simulate_model(p, z):
     z.rxn4_k2 = 10**p[5]
     z.rxn6_k1 = 10**p[6]
     z.rxn6_k2 = 10**p[7]
+
+    # cycle 1 pathway
     z.rxn11_k1 = 10**p[8]
     z.rxn11_k2 = 10**p[9]
     z.rxn12_k1 = 10**p[10]
-    #z.rxn12_k2 = 10**p[11]
+
+    # cycle 1 constraint
+
+    c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+    c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+    z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+    assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
+
+
+    # cycle 2 pathway
     z.rxn9_k1 = 10**p[11]
     z.rxn9_k2 = 10**p[12]
     z.rxn10_k1 = 10**p[13]
+
+    # cycle 2 constraint
+    c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
+    c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
+    z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
+    assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
+
+
 
     
     # set tolerances for simulations
     z.integrator.absolute_tolerance = 1e-19
     z.integrator.relative_tolerance = 1e-17
 
-    n_stage = 3  # number of stages: equilibration, activation, reversal
+    n_stage = 3  # (constant) number of stages: equilibration, activation, reversal
     t_stage = 5  # time length for each stage (in sec) to allow for equilibration
     n_iter_stage = 5e3  # how many how many ODE solver iterations per stage
     t_res = 0.04  # time resolution (sec)
@@ -239,7 +299,6 @@ def simulate_model(p, z):
         D = z.simulate(t_0, t_f, n_iter, selections=['time', 'rxn9', 'rxn12'])
         y_calc = D['rxn9']+D['rxn12']
         #s1 = y_calc[:idx_s2+4:step_size]
-       
      
         s2 = y_calc[idx_s2+4:2*idx_s2:step_size]
         s3 = y_calc[2*idx_s2+4::step_size]
@@ -250,6 +309,8 @@ def simulate_model(p, z):
             s3 = s3[:int(len(s3)*sf_1)]
 
         y_pred_1 = np.hstack([s2,s3])
+
+
     except:
         print('simulation error')
         return np.zeros(500)
@@ -272,13 +333,29 @@ def simulate_model(p, z):
     z.rxn4_k2 = 10**p[5]
     z.rxn6_k1 = 10**p[6]
     z.rxn6_k2 = 10**p[7]
+
+    # cycle 1 pathway
     z.rxn11_k1 = 10**p[8]
     z.rxn11_k2 = 10**p[9]
     z.rxn12_k1 = 10**p[10]
-    #z.rxn12_k2 = 10**p[11]
+
+    # cycle 1 constraint
+
+    c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+    c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+    z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+    assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
+
+    # cycle 2 pathway
     z.rxn9_k1 = 10**p[11]
     z.rxn9_k2 = 10**p[12]
     z.rxn10_k1 = 10**p[13]
+
+    # cycle 2 constraint
+    c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
+    c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
+    z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
+    assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
 
 
     # set tolerances for simulations
@@ -320,10 +397,6 @@ def simulate_model(p, z):
         # reset z to initial
         z.resetToOrigin()
 
-        #update pH
-        z.H_out_activation = 5e-7
-        z.S_out_activation = 0.002
-
         # update rate constants
         z.rxn2_k1 = 10**p[0]
         z.rxn2_k2 = 10**p[1]
@@ -333,13 +406,30 @@ def simulate_model(p, z):
         z.rxn4_k2 = 10**p[5]
         z.rxn6_k1 = 10**p[6]
         z.rxn6_k2 = 10**p[7]
+
+        # cycle 1 pathway
         z.rxn11_k1 = 10**p[8]
         z.rxn11_k2 = 10**p[9]
         z.rxn12_k1 = 10**p[10]
-        #z.rxn12_k2 = 10**p[11]
+
+        # cycle 1 constraint
+
+        c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+        c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+        z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+        assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
+
+        # cycle 2 pathway
         z.rxn9_k1 = 10**p[11]
         z.rxn9_k2 = 10**p[12]
         z.rxn10_k1 = 10**p[13]
+
+        # cycle 2 constraint
+        c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
+        c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
+        z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
+        assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
+
 
 
         # set tolerances for simulations
@@ -385,12 +475,8 @@ def log_likelihood(theta, y_obs, model):
     
     y_pred = simulate_model(theta, model)
 
-
-
     # calculate normal log likelihood
-  
     logl = -len(y_obs) * np.log(np.sqrt(2.0 * np.pi) * curr_sigma)
-   
     logl += -np.sum((y_obs - y_pred) ** 2.0) / (2.0 * curr_sigma ** 2.0) 
   
     return logl
@@ -442,13 +528,16 @@ def randomize_model_parameters(p, s=0):
     p[6] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k1
     p[7] = np.random.uniform(k_conf_range[0], k_conf_range[1]) # rxn6_k2
 
+    # cycle 1
+
     # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
     p[8] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) # rxn11_k1
     p[9] = np.random.uniform(k_S_off_range[0], k_S_off_range[1]) # rxn11_k2    
 
     # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-    p[10] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn12_k1
-    #p[11] = np.random.uniform(k_H_on_range[0], k_H_on_range[1]) # rxn12_k2    
+    p[10] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) # rxn12_k1 
+
+    # cycle 2
 
     # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
     p[11] = np.random.uniform(k_H_off_range[0], k_H_off_range[1]) 
@@ -458,89 +547,37 @@ def randomize_model_parameters(p, s=0):
     p[13] = np.random.uniform(k_S_on_range[0], k_S_on_range[1]) 
 
     # experimental noise
-    #p[12] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
     p[14] = np.random.uniform(sigma_range[0], sigma_range[1]) # sigma
-    
+
     return p
 
-
-def set_reference_model_parameters(p, s=0):
-    '''set parameter values for reference model'''
-    #s=0
-    k_conf_range = (-1-s,5)
-    k_H_on_range = (7-s,13)
-    k_H_off_range = (0-s,6)
-    k_S_on_range = (4-s,10)
-    k_S_off_range = (0-s,6)
-    #sigma_range = (np.log10(5e-15),np.log10(5e-12))
-    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
-
-
-    k_H_on = np.log10(1e10)
-    k_H_off = np.log10(1e3)
-    k_S_on = np.log10(1e7)
-    k_S_off = np.log10(1e3)
-    k_conf = np.log10(1e2)
-    #sigma = np.log10(1e-13)
-    sigma = 1e-13
-  
-
-    # set all parameters to minimum value
-
-    # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-    p[0] = k_H_on_range[0] # rxn2_k1
-    p[1] = k_H_off_range[0]  # rxn2_k2
-
-    # rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-    p[2] = k_S_off_range[0]  # rxn3_k1
-    p[3] = k_S_on_range[0]# rxn3_k2
-
-    # rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-    p[4] = k_conf_range[0] # rxn4_k1
-    p[5] = k_conf_range[0]  # rxn4_k2
-
-    # rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-    p[6] = k_conf_range[0]  # rxn6_k1
-    p[7] = k_conf_range[0]  # rxn6_k2
-
-    # rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-    p[8] = k_S_on_range[0] # rxn11_k1
-    p[9] = k_S_off_range[0]   # rxn11_k2    
-
-    # rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-    p[10] = k_H_off_range[0] # rxn12_k1
-    #p[11] = k_H_on_range[0] # rxn12_k2   
-
-    # rxn9: IF_Hb -> IF + H_in; vol*(rxn9_k1*IF_Hb - rxn9_k2*IF*H_in)
-    p_ref[11] = k_H_off_range[0]  # rxn9_k1
-    p_ref[12] = k_H_on_range[0]   # rxn9_k2   
-
-    # rxn10: IF + S_in -> IF_Sb; vol*(rxn10_k1*IF*S_in - rxn10_k2*IF_Sb)
-    p_ref[13] = k_S_on_range[0]   # rxn10_k1 
-
-    # experimental noise
-    p[14] = sigma_range[0] # sigma
-
-    # update selected parameters reference values 
-    p[0] = k_H_on
-    p[1] = k_H_off
-    p[2] = k_S_off
-    p[3] = k_S_on
-    p[4] = k_conf
-    p[5] = k_conf
-    p[6] = k_conf
-    p[7] = k_conf
-    p[8] = k_S_on
-    p[9] = k_S_off
-    p[10] = k_H_off
- 
-    p[14] = sigma
-    
-    return p
 
 
 def check_prior(p, s=0):
     '''set parameter values for reference model'''
+
+    # # transporter reference 
+    # p[0] = log_rxn2_k1
+    # p[1] = log_rxn2_k2
+    # p[2] = log_rxn3_k1
+    # p[3] = log_rxn3_k2
+    # p[4] = log_rxn4_k1
+    # p[5] = log_rxn4_k2
+    # p[6] = log_rxn6_k1
+    # p[7] = log_rxn6_k2
+
+    # # cycle 1
+    # p[8] = log_rxn11_k1
+    # p[9] = log_rxn11_k2
+    # p[10] = log_rxn12_k1
+
+    # # cycle 2
+    # p[11] = log_rxn9_k1
+    # p[12] = log_rxn9_k2
+    # p[13] = log_rxn10_k1
+
+    # p[14] = sigma
+
     s = 0
     k_conf_range = (-1-s,5)
     k_H_on_range = (7-s,13)
@@ -550,14 +587,12 @@ def check_prior(p, s=0):
     # sigma_range = (np.log10(5e-14,5e-13))
     sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
-
     prior_dict = {}
-    prior_dict['k_conf'] = [k_conf_range, [4,5,6,7]]
-    prior_dict['k_H_on'] = [k_H_on_range, [0,12]]
+    prior_dict['k_conf'] = [k_conf_range, [ 4,5,6,7]]
+    prior_dict['k_H_on'] = [k_H_on_range, [0, 12]]
     prior_dict['k_H_off'] = [k_H_off_range, [1,10,11]]
     prior_dict['k_S_on'] = [k_S_on_range, [3,8,13]]
     prior_dict['k_S_off'] = [k_S_off_range, [2,9]]
-    # prior_dict['sigma'] = [sigma_range, [12]]
     prior_dict['sigma'] = [sigma_range, [14]]
 
     for key in prior_dict:
@@ -573,10 +608,69 @@ def check_prior(p, s=0):
     #print('ALL IN RANGE! returning TRUE')
     return True
 
+
 def energy_to_rate(p):
     '''convert parameter set in energies to rate constants'''
     e_bar = {}
     e_state = {}
+
+
+def generate_ref_p_set(cycle_n=1, n_dim=15, s=3):
+    '''generates a reference parameter set - note that the order matters here! noise sigma should be last'''
+    print(f'cycle n:{cycle_n}')
+    sigma_ref = 1e-13
+    log_k_H_on = np.log10(1e10)
+    log_k_H_off = np.log10(1e3)
+    log_k_S_on = np.log10(1e7)
+    log_k_S_off = np.log10(1e3)
+    log_k_conf = np.log10(1e2)
+
+    p_tmp = [0]*n_dim
+    p_tmp[14] = sigma_ref  # noise stdev.
+
+    p_tmp[0] = log_k_H_on  # log_rxn2_k1
+    p_tmp[1] = log_k_H_off  # log_rxn2_k2
+    p_tmp[2] = log_k_S_off  # log_rxn3_k1
+    p_tmp[3] = log_k_S_on  # log_rxn3_k2
+    p_tmp[4] = log_k_conf  # log_rxn4_k1
+    p_tmp[5] = log_k_conf  # log_rxn4_k2
+    p_tmp[6] = log_k_conf  # log_rxn6_k1
+    p_tmp[7] = log_k_conf  # log_rxn6_k2
+
+    if cycle_n ==0:  # use both cycles
+        # cycle 1
+        p_tmp[8] = log_k_S_on  # log_rxn11_k1
+        p_tmp[9] = log_k_S_off  # log_rxn11_k2
+        p_tmp[10] = log_k_H_off  # log_rxn12_k1
+
+        # cycle 2
+        p_tmp[11] = log_k_H_off  # log_rxn9_k1
+        p_tmp[12] = log_k_H_on  # log_rxn9_k2
+        p_tmp[13] = log_k_S_on  # log_rxn10_k1
+    elif cycle_n ==1:  # use cycle 1 only    
+        # cycle 1
+        p_tmp[8] = log_k_S_on  # log_rxn11_k1
+        p_tmp[9] = log_k_S_off  # log_rxn11_k2
+        p_tmp[10] = log_k_H_off  # log_rxn12_k1
+
+        # cycle 2
+        p_tmp[11] = log_k_H_off-s  # log_rxn9_k1
+        p_tmp[12] = log_k_H_on-s  # log_rxn9_k2
+        p_tmp[13] = log_k_S_on-s  # log_rxn10_k1
+    elif cycle_n ==2:  # use cycle 2 only     
+        # cycle 1
+        p_tmp[8] = log_k_S_on-s  # log_rxn11_k1
+        p_tmp[9] = log_k_S_off-s  # log_rxn11_k2
+        p_tmp[10] = log_k_H_off-s  # log_rxn12_k1
+
+        # cycle 2
+        p_tmp[11] = log_k_H_off  # log_rxn9_k1
+        p_tmp[12] = log_k_H_on  # log_rxn9_k2
+        p_tmp[13] = log_k_S_on  # log_rxn10_k1
+    else:
+        raise ValueError('invalid transporter cycle model selected')
+    pprint.pprint(p_tmp)
+    return p_tmp
 
 
 ##### TESTING
@@ -584,184 +678,67 @@ def energy_to_rate(p):
 ### intialization
 seed = 1234
 np.random.seed(seed)
+
+
+# synthetic model reference values
+n_dim = 15
+sigma_ref = 1e-13
+log_k_H_on = np.log10(1e10)
+log_k_H_off = np.log10(1e3)
+log_k_S_on = np.log10(1e7)
+log_k_S_off = np.log10(1e3)
+log_k_conf = np.log10(1e2)
+
+p_synth = generate_ref_p_set(cycle_n=1)
+
+# test that y_init and y_2 are same for the same parameter sets after running a few integrations
+m = init_model(p_synth)
+y_ref = simulate_model(p_synth,m)
+
+p_0 = generate_ref_p_set(cycle_n=0)
+p_1 = generate_ref_p_set(cycle_n=2)
+y_0 = simulate_model(p_0,m)
+y_1 = simulate_model(p_1,m)
+y_2 = simulate_model(p_synth,m)
+assert(np.array_equal(y_ref,y_2))
+assert(not np.array_equal(y_ref,y_0))
+assert(not np.array_equal(y_ref,y_1))
+assert(not np.array_equal(y_0,y_1))
+
+
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data_v2.csv'
+
+y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
+
+
+
+
+plt.plot(y_ref, '--', alpha=0.5, label='ref - cycle 1')
+#plt.plot(y_obs, 'o', alpha=0.5)
+plt.plot(y_0, alpha=0.5, label='both cycles')
+plt.plot(y_1, alpha=0.5, label = 'cycle 2')
+plt.legend()
+plt.show()
+print('logl')
+# pprint.pprint(log_likelihood(p_synth, y_obs, m))
+# pprint.pprint(log_likelihood(p_0, y_obs, m))
+# pprint.pprint(log_likelihood(p_1, y_obs, m))
+
+pprint.pprint(p_synth)
+pprint.pprint(p_0)
+pprint.pprint(p_1)
+
+pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_0))))
+pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_1))))
+pprint.pprint(np.sqrt(np.mean(np.square(y_0-y_1))))
+
+exit()
+
 start_time = datetime.now()
 time_str = time.strftime("%Y%m%d_%H%M%S") 
 filename=f'intermediate_transporter_2_{time_str}'
 new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter2/', f'{time_str}_intermediate_transporter')
 new_dir.mkdir(parents=True, exist_ok=True)
-
-sigma_ref = 1e-13
-k_H_on = np.log10(1e10)
-k_H_off = np.log10(1e3)
-k_S_on = np.log10(1e7)
-k_S_off = np.log10(1e3)
-k_conf = np.log10(1e2)
-
-n_dim = 15
-p_synth = np.zeros(n_dim)
-p_synth[0] = k_H_on
-p_synth[1] = k_H_off
-p_synth[2] = k_S_off
-p_synth[3] = k_S_on
-p_synth[4] = k_conf
-p_synth[5] = k_conf
-p_synth[6] = k_conf
-p_synth[7] = k_conf
-
-p_synth[8] = k_S_on
-p_synth[9] = k_S_off
-p_synth[10] = k_H_off
-
-
-# 'unused' parameters
-# p_synth[11] = k_H_off-3
-# p_synth[12] = k_H_on-3
-# p_synth[13] = k_S_on-3
-p_synth[11] = -10
-p_synth[12] = -10
-p_synth[13] = -10
-
-# # # 'unused' parameters
-# p_synth[11] = k_H_off
-# p_synth[12] = k_H_on
-# p_synth[13] = k_S_on
-
-
-# data noise
-p_synth[14] = sigma_ref
-
-
-m = init_model(p_synth)
-y_ref = simulate_model(p_synth,m)
-
-# import matplotlib
-# matplotlib.use('tkagg')
-# plt.plot(y_ref)
-# plt.show()
-# exit()
-
-
-# debugging
-# y_obs = y_ref + np.random.normal(0,sigma_ref,np.size(y_ref))
-
-# plt.figure(figsize=(15,10))
-# plt.plot(y_ref)
-# plt.plot(y_obs, 'o')
-# plt.savefig('test_t2.png')
-# pd.DataFrame(y_obs, columns=['y_obs']).to_csv('t_2c_2exp_2stage_all_data.csv')
-# exit()
-
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data.csv'
-
-y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
-
-max_logl_synth = log_likelihood(p_synth, y_obs, m)
-print(max_logl_synth)
-print(p_synth)
-
-# testing 
-import itertools
-xyz_list = [
-    list([ 0, 1, 2, 3, 3.1, 3.2, 3.3, 3.4, 3.47168725, 3.5, 3.6, 3.7, 3.8, 3.9, 4,5,6]),
-    list([ 10.24951304]),
-    list([ 9.689187854]),
-]
-coord_list = list(itertools.product(*xyz_list))
-logl_list = []
-for i in range(len(coord_list)):
-    p_tmp = np.zeros_like(p_synth)
-    p_tmp[0] = 9.970677058
-    p_tmp[1] = 3.017513926
-    p_tmp[2] = 3.477095606
-    p_tmp[3] = 7.387941133
-    p_tmp[4] = 1.989579224
-    p_tmp[5] = 2.466297453
-    p_tmp[6] = 1.897578906
-    p_tmp[7] = 1.997958304
-    p_tmp[8] = 7.657318768
-    p_tmp[9] = 3.188454235
-    p_tmp[10] = 2.999722959
-    # 'unused' parameters
-    p_tmp[11] = coord_list[i][0]
-    p_tmp[12] = coord_list[i][1]
-    p_tmp[13] = coord_list[i][2]
-
-    # data noise
-    p_tmp[14] = 9.74E-14
-    logl_list.append(log_likelihood(p_tmp,y_obs,m))
-
-df1 = pd.DataFrame(coord_list, columns=['x','y','z'])
-df1['logl'] = logl_list
-print(df1)
-print(df1.iloc[np.argmax(df1['logl'])])
-
-p2 = [10,	3.017513926,	3.477095606,	7.387941133,	1.989579224,	2.466297453,	1.897578906,	1.997958304,	7.657318768,	3.188454235,	2.999722959,	3.47168725,	10.24951304,	9.689187854,	9.74E-14]
-print(log_likelihood(p2, y_obs, m))
-
-n_dim = 15
-p_synth2 = np.zeros(n_dim)
-p_synth2[0] = k_H_on
-p_synth2[1] = k_H_off
-p_synth2[2] = k_S_off
-p_synth2[3] = k_S_on
-p_synth2[4] = k_conf
-p_synth2[5] = k_conf
-p_synth2[6] = k_conf
-p_synth2[7] = k_conf
-
-p_synth2[8] = -10
-p_synth2[9] = -10
-p_synth2[10] = -10
-
-# 'unused' parameters
-p_synth2[11] = k_H_off
-p_synth2[12] = k_H_on
-p_synth2[13] = k_S_on
-
-p_synth2[14] = sigma_ref
-
-n_dim = 15
-p_synth3 = np.zeros(n_dim)
-p_synth3[0] = k_H_on
-p_synth3[1] = k_H_off
-p_synth3[2] = k_S_off
-p_synth3[3] = k_S_on
-p_synth3[4] = k_conf
-p_synth3[5] = k_conf
-p_synth3[6] = k_conf
-p_synth3[7] = k_conf
-
-p_synth3[8] = k_S_on
-p_synth3[9] = k_S_off
-p_synth3[10] = k_H_off
-
-# 'unused' parameters
-p_synth3[11] = k_H_off
-p_synth3[12] = k_H_on
-p_synth3[13] = k_S_on
-
-
-# data noise
-p_synth3[14] = sigma_ref
-
-
-print(p_synth)
-print(p_synth2)
-print(p_synth3)
-
-
-
-y_tmp1 = simulate_model(p_synth2, m)
-#y_tmp2 = simulate_model(p_synth3, m)
-
-plt.figure(figsize=(15,10))
-#plt.plot(y_ref, label='p set 1 - cycle 1 only')
-plt.plot(y_tmp1, label='p set 2 - cycle 2 only')
-#plt.plot(y_tmp2, label='p set 1 - cycle 1 and 2')
-plt.legend()
-plt.savefig('test.png')
-
-exit()
 
 exit()
 
