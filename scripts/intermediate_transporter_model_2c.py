@@ -18,7 +18,7 @@ less_data = True
 data_amount = 1 # 0.5 = keep 50% of data per experiment stage
 
 # use 3 experiments
-three_exp = True
+three_exp = False
 
 # check environment (fix this later)
 use_pt_sampler = True
@@ -226,8 +226,8 @@ def simulate_model(p, z):
     # p[12] = log_rxn9_k2
     # p[13] = log_rxn10_k1
 
-    print('simulate model')
-    pprint.pprint(p)
+    # print('simulate model')
+    # pprint.pprint(p)
 
 
     # percentage of data to keep 
@@ -258,12 +258,10 @@ def simulate_model(p, z):
     z.rxn12_k1 = 10**p[10]
 
     # cycle 1 constraint
-
     c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
     c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
     z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
-    assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
-
+    assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
     # cycle 2 pathway
     z.rxn9_k1 = 10**p[11]
@@ -274,11 +272,8 @@ def simulate_model(p, z):
     c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
     c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
     z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
-    assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
-
-
-
-    
+    assert(np.isclose((c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)),1))
+   
     # set tolerances for simulations
     z.integrator.absolute_tolerance = 1e-19
     z.integrator.relative_tolerance = 1e-17
@@ -340,11 +335,10 @@ def simulate_model(p, z):
     z.rxn12_k1 = 10**p[10]
 
     # cycle 1 constraint
-
     c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
     c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
     z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
-    assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
+    assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
     # cycle 2 pathway
     z.rxn9_k1 = 10**p[11]
@@ -355,7 +349,7 @@ def simulate_model(p, z):
     c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
     c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
     z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
-    assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
+    assert(np.isclose((c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)),1))
 
 
     # set tolerances for simulations
@@ -413,11 +407,10 @@ def simulate_model(p, z):
         z.rxn12_k1 = 10**p[10]
 
         # cycle 1 constraint
-
         c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
         c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
         z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
-        assert(c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)==1)
+        assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
         # cycle 2 pathway
         z.rxn9_k1 = 10**p[11]
@@ -428,7 +421,7 @@ def simulate_model(p, z):
         c2_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[11])*(10**p[13]) 
         c2_rev_wo_rxn10_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[12])
         z.rxn10_k2= c2_fwd/c2_rev_wo_rxn10_k2
-        assert(c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)==1)
+        assert(np.isclose((c2_fwd/(c2_rev_wo_rxn10_k2*z.rxn10_k2)),1))
 
 
 
@@ -654,9 +647,9 @@ def generate_ref_p_set(cycle_n=1, n_dim=15, s=3):
         p_tmp[10] = log_k_H_off  # log_rxn12_k1
 
         # cycle 2
-        p_tmp[11] = log_k_H_off-s  # log_rxn9_k1
-        p_tmp[12] = log_k_H_on-s  # log_rxn9_k2
-        p_tmp[13] = log_k_S_on-s  # log_rxn10_k1
+        p_tmp[11] = (log_k_H_off-3)-s  # log_rxn9_k1
+        p_tmp[12] = (log_k_H_on-3)-s  # log_rxn9_k2
+        p_tmp[13] = (log_k_S_on-3)-s  # log_rxn10_k1
     elif cycle_n ==2:  # use cycle 2 only     
         # cycle 1
         p_tmp[8] = log_k_S_on-s  # log_rxn11_k1
@@ -664,13 +657,14 @@ def generate_ref_p_set(cycle_n=1, n_dim=15, s=3):
         p_tmp[10] = log_k_H_off-s  # log_rxn12_k1
 
         # cycle 2
-        p_tmp[11] = log_k_H_off  # log_rxn9_k1
-        p_tmp[12] = log_k_H_on  # log_rxn9_k2
-        p_tmp[13] = log_k_S_on  # log_rxn10_k1
+        p_tmp[11] = log_k_H_off-3  # log_rxn9_k1
+        p_tmp[12] = log_k_H_on -3 # log_rxn9_k2
+        p_tmp[13] = log_k_S_on -3 # log_rxn10_k1
     else:
         raise ValueError('invalid transporter cycle model selected')
-    pprint.pprint(p_tmp)
+    #pprint.pprint(p_tmp)
     return p_tmp
+
 
 
 ##### TESTING
@@ -688,8 +682,25 @@ log_k_H_off = np.log10(1e3)
 log_k_S_on = np.log10(1e7)
 log_k_S_off = np.log10(1e3)
 log_k_conf = np.log10(1e2)
+labels = [
+    'rxn2_k1',
+    'rxn2_k2',
+    'rxn3_k1',
+    'rxn3_k2',
+    'rxn4_k1',
+    'rxn4_k2',
+    'rxn6_k1',
+    'rxn6_k2',
+    'rxn11_k1',
+    'rxn11_k2',
+    'rxn12_k1',
+    'rxn9_k1',
+    'rxn9_k2',
+    'rxn10_k1',
+    'sigma'
+]
 
-p_synth = generate_ref_p_set(cycle_n=1)
+p_synth = generate_ref_p_set(cycle_n=1, s=0)
 
 # test that y_init and y_2 are same for the same parameter sets after running a few integrations
 m = init_model(p_synth)
@@ -709,30 +720,82 @@ assert(not np.array_equal(y_0,y_1))
 datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data_v2.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
+max_logl_synth = log_likelihood(p_synth, y_obs, m)
+print(max_logl_synth)
 
+p_max_sampled = [
+    9.460829966,
+    2.980404848,	
+    3.250641237,
+    6.577311748,
+    1.935962303,
+    2.837041206,
+    1.970046873,
+    2.066221052,
+    7.805577072,
+    2.939946547,
+    2.986852687,
+    3.000480367,
+    9.705407901,
+    7.260202324,
+    9.68E-14,
+]
 
+# # adjust cycle 1 only - adjust
+# s_n = np.linspace(5,-5,11)
+# s_n_x = -1*s_n
+# logl_list = []
+# for i in s_n:
+#     p_tmp = generate_ref_p_set(cycle_n=1, n_dim=15, s=i)
+#     logl_list.append(log_likelihood(p_tmp,y_obs,m))
 
+# pprint.pprint(logl_list)
+# logl_array = np.array(logl_list)
+# rel_logl = (logl_array - np.min(logl_array))/(np.ptp(logl_array)) 
+# #print(rel_logl)
+# logl_list2 = []
+# for i in s_n:
+#     p_tmp = generate_ref_p_set(cycle_n=2, n_dim=15, s=i)
+#     logl_list2.append(log_likelihood(p_tmp,y_obs,m))
 
-plt.plot(y_ref, '--', alpha=0.5, label='ref - cycle 1')
-#plt.plot(y_obs, 'o', alpha=0.5)
-plt.plot(y_0, alpha=0.5, label='both cycles')
-plt.plot(y_1, alpha=0.5, label = 'cycle 2')
-plt.legend()
-plt.show()
-print('logl')
-# pprint.pprint(log_likelihood(p_synth, y_obs, m))
-# pprint.pprint(log_likelihood(p_0, y_obs, m))
-# pprint.pprint(log_likelihood(p_1, y_obs, m))
+# pprint.pprint(logl_list2)
+# logl_array2 = np.array(logl_list2)
+# rel_logl2 = (logl_array2 - np.min(logl_array2))/(np.ptp(logl_array2)) 
+# #print(rel_logl2)
 
-pprint.pprint(p_synth)
-pprint.pprint(p_0)
-pprint.pprint(p_1)
+# plt.title('preliminary cycle pathway sensitivity analysis')
+# plt.plot(s_n_x,logl_list2, label='adjusting cycle 1 only', alpha=0.75)
+# plt.plot(s_n_x,logl_list, label='adjusting cycle 2 only', alpha=0.75)
+# plt.ylabel('log-likelihood')
+# plt.xlabel('log10 shift in cycle rates from synthetic reference')
+# plt.hlines(max_logl_synth,-5,5, linestyles='--', color='black', label='ref')
+# plt.ylim(0.99*max_logl_synth,1.00001*max_logl_synth)
+# #plt.xlim(-2,5)
+# plt.legend()
+# plt.show()
+# # exit()
 
-pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_0))))
-pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_1))))
-pprint.pprint(np.sqrt(np.mean(np.square(y_0-y_1))))
+# pprint.pprint(logl_list2)
+# pprint.pprint(logl_list)
+# plt.plot(y_ref, '--', alpha=0.5, label='ref - cycle 1')
+# #plt.plot(y_obs, 'o', alpha=0.5)
+# plt.plot(y_0, alpha=0.5, label='both cycles')
+# plt.plot(y_1, alpha=0.5, label = 'cycle 2')
+# plt.legend()
+# plt.show()
+# print('logl')
+# # pprint.pprint(log_likelihood(p_synth, y_obs, m))
+# # pprint.pprint(log_likelihood(p_0, y_obs, m))
+# # pprint.pprint(log_likelihood(p_1, y_obs, m))
 
-exit()
+# pprint.pprint(p_synth)
+# pprint.pprint(p_0)
+# pprint.pprint(p_1)
+
+# pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_0))))
+# pprint.pprint(np.sqrt(np.mean(np.square(y_ref-y_1))))
+# pprint.pprint(np.sqrt(np.mean(np.square(y_0-y_1))))
+
 
 start_time = datetime.now()
 time_str = time.strftime("%Y%m%d_%H%M%S") 
@@ -740,47 +803,11 @@ filename=f'intermediate_transporter_2_{time_str}'
 new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter2/', f'{time_str}_intermediate_transporter')
 new_dir.mkdir(parents=True, exist_ok=True)
 
-exit()
-
-p_sample1 = [
-    9.970677058,	
-    3.017513926,
-    3.477095606,	
-    7.387941133,	
-    1.989579224,
-    2.466297453,
-    1.897578906,
-    1.997958304,
-    7.657318768,
-    3.188454235,
-    2.999722959,
-    3.47168725,
-    10.24951304,
-    9.689187854,
-    9.74E-14
-]
-
-max_logl_sample1 = log_likelihood(p_sample1, y_obs, m)
-print(max_logl_sample1)
-print(p_sample1)
-y_sample = simulate_model(p_sample1,m)
 
 
-plt.figure(figsize=(15,10))
-plt.plot(y_obs, 'o', color='black', alpha=0.75, label='synth obs.')
-plt.plot(y_ref, color='green', alpha=0.75, label='synth ref.')
-plt.plot(y_sample, '--', color='red', alpha=0.75, label='sampled')
-plt.legend()
-plt.savefig('test.png')
-print(np.sqrt(np.mean(np.square(y_ref-y_sample))))
-print(np.sqrt(np.mean(np.square(y_obs-y_sample))))
-print(np.sqrt(np.mean(np.square(y_obs-y_ref))))
-exit()
-
-# p_ref = [0]*25
 
 n_walkers = 50
-n_steps = int(1e4)
+n_steps = int(2e4)
 n_burn = int(0.1*n_steps)
 n_temps = 4
 move_list = []
@@ -792,7 +819,15 @@ if use_pt_sampler==True:
     for j in range(n_temps):
         pos_list = []
         for i in range(n_walkers):
-            p0_tmp = randomize_model_parameters(np.zeros(n_dim))
+            print('WARNING: using synthetic reference as initial walker position!')
+            p0_tmp = np.zeros(n_dim)
+            for i, p in enumerate(p_synth):
+                if i == n_dim-1:  # sigma
+                    p0_tmp[i] = p*(1+np.random.uniform(-0.01,0.01))
+                else:
+                    p0_tmp[i] = p+np.random.uniform(0, 0.01)
+            # p0_tmp = randomize_model_parameters(np.zeros(n_dim))  # default
+           
             pos_list.append(p0_tmp)
         p0_list.append(pos_list)
     p0 = np.asarray(p0_list)
@@ -803,6 +838,15 @@ if use_pt_sampler==True:
     for p, lnprob, lnlike in sampler.sample(p0, iterations=n_burn):
         print(f'{i+1}/{n_burn}')
         i+=1
+
+
+    pt_samples_burn = sampler.flatchain[0,:,:]
+    logl_burn = sampler.lnlikelihood[0,:,:].reshape((-1))
+    samples_df_burn = pd.DataFrame(pt_samples_burn, columns=labels)
+    samples_df_burn['logl'] = logl_burn
+    samples_df_burn.to_csv(new_dir/f'{filename}_data_burn.csv')
+
+
     sampler.reset()
     i=0
     for p, lnprob, lnlike in sampler.sample(p, lnprob0=lnprob,
@@ -848,23 +892,7 @@ end_time = datetime.now()
 #     'rxn12_k2',
 #     'sigma'
 # ]
-labels = [
-    'rxn2_k1',
-    'rxn2_k2',
-    'rxn3_k1',
-    'rxn3_k2',
-    'rxn4_k1',
-    'rxn4_k2',
-    'rxn6_k1',
-    'rxn6_k2',
-    'rxn11_k1',
-    'rxn11_k2',
-    'rxn12_k1',
-    'rxn9_k1',
-    'rxn9_k2',
-    'rxn10_k1',
-    'sigma'
-]
+
 
 with open(new_dir/f'{time_str}_emcee_transporter_log.txt', 'a') as f:
         f.write(f'{time_str}_emcee_transporter_log.txt\n\n')
@@ -1062,10 +1090,13 @@ samples_df.to_csv(new_dir/f'{filename}_data.csv')
 
 theta_true = p_ref
 
-fig = corner.corner(
-        flat_samples, labels=labels, truths=theta_true
-    )
-plt.savefig(new_dir/f'{filename}_2dcorr.png')
+try:
+    fig = corner.corner(
+            flat_samples, labels=labels, truths=theta_true
+        )
+    plt.savefig(new_dir/f'{filename}_2dcorr.png')
+except:
+    print('cannot make corner plot')
 
 
 # plot y_predicted and y_observed
