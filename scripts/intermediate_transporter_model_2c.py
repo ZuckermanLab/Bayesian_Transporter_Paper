@@ -807,7 +807,7 @@ new_dir.mkdir(parents=True, exist_ok=True)
 
 
 n_walkers = 50
-n_steps = int(2e4)
+n_steps = int(5e4)
 n_burn = int(0.1*n_steps)
 n_temps = 4
 move_list = []
@@ -819,9 +819,10 @@ if use_pt_sampler==True:
     for j in range(n_temps):
         pos_list = []
         for i in range(n_walkers):
+
             print('WARNING: using synthetic reference as initial walker position!')
             p0_tmp = np.zeros(n_dim)
-            for i, p in enumerate(p_synth):
+            for i, p in enumerate(p_max_sampled):
                 if i == n_dim-1:  # sigma
                     p0_tmp[i] = p*(1+np.random.uniform(-0.01,0.01))
                 else:
@@ -1016,7 +1017,7 @@ print(p_ref)
 
 
 
-# mcmc trajectory (before burn in)
+# mcmc trajectory 
 
 
 if use_pt_sampler == True:
