@@ -12,7 +12,7 @@ from datetime import datetime
 
 # use less synthetic data (removes tails)
 less_data = True
-data_amount = 0.5 # 0.5 = keep 50% of data per experiment stage
+data_amount = 1 # 0.5 = keep 50% of data per experiment stage
 
 # use 3 experiments
 three_exp = False
@@ -198,7 +198,12 @@ def simulate_model(p, z):
     z.rxn11_k1 = 10**p[8]
     z.rxn11_k2 = 10**p[9]
     z.rxn12_k1 = 10**p[10]
-    #z.rxn12_k2 = 10**p[11]
+   
+    # cycle 1 constraint
+    c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+    c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+    z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+    assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
     
     # set tolerances for simulations
@@ -259,6 +264,12 @@ def simulate_model(p, z):
     z.rxn12_k1 = 10**p[10]
     #z.rxn12_k2 = 10**p[11]
 
+    # cycle 1 constraint
+    c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+    c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+    z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+    assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
+
     # set tolerances for simulations
     z.integrator.absolute_tolerance = 1e-19
     z.integrator.relative_tolerance = 1e-17
@@ -315,6 +326,12 @@ def simulate_model(p, z):
         z.rxn11_k2 = 10**p[9]
         z.rxn12_k1 = 10**p[10]
         #z.rxn12_k2 = 10**p[11]
+
+        # cycle 1 constraint
+        c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+        c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+        z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+        assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
         # set tolerances for simulations
         z.integrator.absolute_tolerance = 1e-19
@@ -392,12 +409,25 @@ def log_probability(theta, y_obs, model):
 def randomize_model_parameters(p, s=0):
     '''randomize initial parameter values to be within accepted range for each parameter type'''
    
-    k_conf_range = (-1-s,5)
-    k_H_on_range = (7-s,13)
-    k_H_off_range = (0-s,6)
-    k_S_on_range = (4-s,10)
-    k_S_off_range = (0-s,6)
-    # sigma_range = (np.log10(5e-14),np.log10(5e-13))
+
+
+    # k_conf_range = (-1-s,5)
+    # k_H_on_range = (7-s,13)
+    # k_H_off_range = (0-s,6)
+    # k_S_on_range = (4-s,10)
+    # k_S_off_range = (0-s,6)
+    # # sigma_range = (np.log10(5e-14),np.log10(5e-13))
+    # sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
+
+
+    # prior shift (testing)
+    #s = [-1,1, -1, 1,-1]
+    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    k_conf_range = (-1-s[0],5-s[0])
+    k_H_on_range = (7-s[1],13-s[1])
+    k_H_off_range = (0-s[2],6-s[2])
+    k_S_on_range = (4-s[3],10-s[3])
+    k_S_off_range = (0-s[4],6-s[4])
     sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
     # rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
@@ -433,13 +463,23 @@ def randomize_model_parameters(p, s=0):
 
 def set_reference_model_parameters(p, s=0):
     '''set parameter values for reference model'''
-    #s=0
-    k_conf_range = (-1-s,5)
-    k_H_on_range = (7-s,13)
-    k_H_off_range = (0-s,6)
-    k_S_on_range = (4-s,10)
-    k_S_off_range = (0-s,6)
-    #sigma_range = (np.log10(5e-15),np.log10(5e-12))
+    # #s=0
+    # k_conf_range = (-1-s,5)
+    # k_H_on_range = (7-s,13)
+    # k_H_off_range = (0-s,6)
+    # k_S_on_range = (4-s,10)
+    # k_S_off_range = (0-s,6)
+    # #sigma_range = (np.log10(5e-15),np.log10(5e-12))
+    # sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
+
+    # prior shift (testing)
+    #s = [-1,1, -1, 1,-1]
+    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    k_conf_range = (-1-s[0],5-s[0])
+    k_H_on_range = (7-s[1],13-s[1])
+    k_H_off_range = (0-s[2],6-s[2])
+    k_S_on_range = (4-s[3],10-s[3])
+    k_S_off_range = (0-s[4],6-s[4])
     sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
 
@@ -494,8 +534,6 @@ def set_reference_model_parameters(p, s=0):
     p[8] = k_S_on
     p[9] = k_S_off
     p[10] = k_H_off
-    #p[11] = k_H_on
-    #p[12] = sigma
     p[11] = sigma
     
     return p
@@ -503,15 +541,24 @@ def set_reference_model_parameters(p, s=0):
 
 def check_prior(p, s=0):
     '''set parameter values for reference model'''
-    s = 0
-    k_conf_range = (-1-s,5)
-    k_H_on_range = (7-s,13)
-    k_H_off_range = (0-s,6)
-    k_S_on_range = (4-s,10)
-    k_S_off_range = (0-s,6)
-    # sigma_range = (np.log10(5e-14,5e-13))
-    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
+    # s = 0
+    # k_conf_range = (-1-s,5)
+    # k_H_on_range = (7-s,13)
+    # k_H_off_range = (0-s,6)
+    # k_S_on_range = (4-s,10)
+    # k_S_off_range = (0-s,6)
+    # # sigma_range = (np.log10(5e-14,5e-13))
+    # sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
+    # prior shift (testing)
+    # s = [-1,1, -1, 1,-1]
+    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    k_conf_range = (-1-s[0],5-s[0])
+    k_H_on_range = (7-s[1],13-s[1])
+    k_H_off_range = (0-s[2],6-s[2])
+    k_S_on_range = (4-s[3],10-s[3])
+    k_S_off_range = (0-s[4],6-s[4])
+    sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
     prior_dict = {}
     prior_dict['k_conf'] = [k_conf_range, [4,5,6,7]]
@@ -550,7 +597,7 @@ np.random.seed(seed)
 start_time = datetime.now()
 time_str = time.strftime("%Y%m%d_%H%M%S") 
 filename=f'DEBUG_intermediate_transporter_{time_str}'
-new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter')
+new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter_prior_shift')
 new_dir.mkdir(parents=True, exist_ok=True)
 
 sigma_ref = 1e-13
@@ -580,7 +627,7 @@ m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_8th_data.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_all_data.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
@@ -693,14 +740,24 @@ k_S_on = np.log10(1e7)
 k_S_off = np.log10(1e3)
 k_conf = np.log10(1e2)
 
-k_conf_range = (-1-s,5)
-k_H_on_range = (7-s,13)
-k_H_off_range = (0-s,6)
-k_S_on_range = (4-s,10)
-k_S_off_range = (0-s,6)
-# sigma_range = (np.log10(5e-14,5e-13))
-sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
+# k_conf_range = (-1-s,5)
+# k_H_on_range = (7-s,13)
+# k_H_off_range = (0-s,6)
+# k_S_on_range = (4-s,10)
+# k_S_off_range = (0-s,6)
+# # sigma_range = (np.log10(5e-14,5e-13))
+# sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
+
+# prior shift (testing)
+# s = [-1,1, -1, 1,-1]
+s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+k_conf_range = (-1-s[0],5-s[0])
+k_H_on_range = (7-s[1],13-s[1])
+k_H_off_range = (0-s[2],6-s[2])
+k_S_on_range = (4-s[3],10-s[3])
+k_S_off_range = (0-s[4],6-s[4])
+sigma_range = ((1e-13 - (1e-13*0.5)), (1e-13 + (1e-13*0.5)))
 
 ### boundary ranges
 bounds=[0]*n_dim
@@ -738,33 +795,6 @@ print(bounds)
 ### reference values
 p_ref = np.zeros(n_dim)
 
-# rxn2: OF + $H_out -> OF_Hb; vol*(rxn2_k1*OF*H_out - rxn2_k2*OF_Hb)
-p_ref[0] = k_H_on_range[0] # rxn2_k1
-p_ref[1] = k_H_off_range[0]  # rxn2_k2
-
-# rxn3: OF_Sb -> OF + $S_out; vol*(rxn3_k1*OF_Sb - rxn3_k2*OF*S_out)
-p_ref[2] = k_S_off_range[0]  # rxn3_k1
-p_ref[3] = k_S_on_range[0] # rxn3_k2
-
-# rxn4: OF_Hb -> IF_Hb; vol*(rxn4_k1*OF_Hb - rxn4_k2*IF_Hb)
-p_ref[4] = k_conf_range[0] # rxn4_k1
-p_ref[5] = k_conf_range[0] # rxn4_k2
-
-# rxn6: IF_Sb -> OF_Sb; vol*(rxn6_k1*IF_Sb - rxn6_k2*OF_Sb)
-p_ref[6] = k_conf_range[0] # rxn6_k1
-p_ref[7] = k_conf_range[0] # rxn6_k2
-
-# rxn11: IF_Hb + S_in -> IF_Hb_Sb; vol*(rxn11_k1*IF_Hb*S_in - rxn11_k2*IF_Hb_Sb)
-p_ref[8] = k_S_on_range[0] # rxn11_k1
-p_ref[9] = k_S_off_range[0]   # rxn11_k2    
-
-# rxn12: IF_Hb_Sb -> IF_Sb + H_in; vol*(rxn12_k1*IF_Hb_Sb - rxn12_k2*IF_Sb*H_in)
-p_ref[10] = k_H_off_range[0] # rxn12_k1
-# p_ref[11] = k_H_on_range[0]  # rxn12_k2    
-
-# experimental noise
-# p_ref[12] = sigma_range[0] # sigma
-p_ref[11] = sigma_range[0] # sigma
 
 p_ref[0] = k_H_on
 p_ref[1] = k_H_off

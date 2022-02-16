@@ -807,7 +807,7 @@ new_dir.mkdir(parents=True, exist_ok=True)
 
 
 n_walkers = 50
-n_steps = int(5e4)
+n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_temps = 4
 move_list = []
