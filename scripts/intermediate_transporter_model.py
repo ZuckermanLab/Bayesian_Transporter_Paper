@@ -12,7 +12,7 @@ from datetime import datetime
 
 # use less synthetic data (removes tails)
 less_data = True
-data_amount = 1 # 0.5 = keep 50% of data per experiment stage
+data_amount = 0.5 # 0.5 = keep 50% of data per experiment stage
 
 # use 3 experiments
 three_exp = False
@@ -627,7 +627,8 @@ m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
 
 
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_all_data.csv'
+#datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_all_data.csv'
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_half_data.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
