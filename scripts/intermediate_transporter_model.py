@@ -423,7 +423,8 @@ def randomize_model_parameters(p, s=0):
 
     # prior shift (testing)
     #s = [-1,1, -1, 1,-1]
-    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    # s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    s = [0, 0, 0, 0, 0,]
     k_conf_range = (-1-s[0],5-s[0])
     k_H_on_range = (7-s[1],13-s[1])
     k_H_off_range = (0-s[2],6-s[2])
@@ -475,7 +476,8 @@ def set_reference_model_parameters(p, s=0):
 
     # prior shift (testing)
     #s = [-1,1, -1, 1,-1]
-    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    # s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    s = [0, 0, 0, 0, 0,]
     k_conf_range = (-1-s[0],5-s[0])
     k_H_on_range = (7-s[1],13-s[1])
     k_H_off_range = (0-s[2],6-s[2])
@@ -553,7 +555,8 @@ def check_prior(p, s=0):
 
     # prior shift (testing)
     # s = [-1,1, -1, 1,-1]
-    s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    # s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+    s = [0, 0, 0, 0, 0,]
     k_conf_range = (-1-s[0],5-s[0])
     k_H_on_range = (7-s[1],13-s[1])
     k_H_off_range = (0-s[2],6-s[2])
@@ -590,81 +593,81 @@ def energy_to_rate(p):
     e_state = {}
 
 
-##### TESTING
+# ##### TESTING
 
-params = {'legend.fontsize': 'xx-large',
-          'figure.figsize': (12, 10),
-         'axes.labelsize': 'xx-large',
-         'axes.titlesize':'xx-large',
-         'xtick.labelsize':'xx-large',
-         'ytick.labelsize':'xx-large'}
-plt.rcParams.update(params)
+# params = {'legend.fontsize': 'xx-large',
+#           'figure.figsize': (12, 10),
+#          'axes.labelsize': 'xx-large',
+#          'axes.titlesize':'xx-large',
+#          'xtick.labelsize':'xx-large',
+#          'ytick.labelsize':'xx-large'}
+# plt.rcParams.update(params)
 
-####
-sigma_ref = 1e-13
-k_H_on = np.log10(1e10)
-k_H_off = np.log10(1e3)
-k_S_on = np.log10(1e7)
-k_S_off = np.log10(1e3)
-k_conf = np.log10(1e2)
+# ####
+# sigma_ref = 1e-13
+# k_H_on = np.log10(1e10)
+# k_H_off = np.log10(1e3)
+# k_S_on = np.log10(1e7)
+# k_S_off = np.log10(1e3)
+# k_conf = np.log10(1e2)
 
-p_synth = np.zeros(12)
-p_synth[0] = k_H_on
-p_synth[1] = k_H_off
-p_synth[2] = k_S_off
-p_synth[3] = k_S_on
-p_synth[4] = k_conf
-p_synth[5] = k_conf
-p_synth[6] = k_conf
-p_synth[7] = k_conf
-p_synth[8] = k_S_on
-p_synth[9] = k_S_off
-p_synth[10] = k_H_off
-#p_synth[11] = k_H_on
-#p_synth[12] = sigma_ref
-p_synth[11] = sigma_ref
+# p_synth = np.zeros(12)
+# p_synth[0] = k_H_on
+# p_synth[1] = k_H_off
+# p_synth[2] = k_S_off
+# p_synth[3] = k_S_on
+# p_synth[4] = k_conf
+# p_synth[5] = k_conf
+# p_synth[6] = k_conf
+# p_synth[7] = k_conf
+# p_synth[8] = k_S_on
+# p_synth[9] = k_S_off
+# p_synth[10] = k_H_off
+# #p_synth[11] = k_H_on
+# #p_synth[12] = sigma_ref
+# p_synth[11] = sigma_ref
 
-m = init_model(p_synth)
+# m = init_model(p_synth)
 
 
 
-y_ref = simulate_model(p_synth,m)
-datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_half_data.csv'
+# y_ref = simulate_model(p_synth,m)
+# datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_half_data.csv'
 
-y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
+# y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
 
-import numpy as np
-fname = '/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/20220127_180709_intermediate_transporter/DEBUG_intermediate_transporter_20220127_180709_data.csv'
-n_cols = 12
-col_list = [i+1 for i in range(n_cols)]  # only keep columns 1...n_p-1 
-D = np.genfromtxt(fname, delimiter=',', skip_header=1,usecols=col_list)  
-inds = np.random.randint(len(D), size=100)
+# import numpy as np
+# fname = '/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/20220127_180709_intermediate_transporter/DEBUG_intermediate_transporter_20220127_180709_data.csv'
+# n_cols = 12
+# col_list = [i+1 for i in range(n_cols)]  # only keep columns 1...n_p-1 
+# D = np.genfromtxt(fname, delimiter=',', skip_header=1,usecols=col_list)  
+# inds = np.random.randint(len(D), size=100)
 
-for i, ind in enumerate(inds):
-    sample = D[ind]
+# for i, ind in enumerate(inds):
+#     sample = D[ind]
   
-    y_pred_i = simulate_model(sample,m)
-    if i == len(inds)-1:
-        plt.plot(y_pred_i, alpha=0.5, color='black', label='predicted')
-    else:
-        plt.plot(y_pred_i, alpha=0.1, color='black')
-plt.plot(y_obs, 'o', alpha=0.5, label='observed')
-plt.ylabel('ion flux [M/s]')
-plt.xlabel('time [s]')
+#     y_pred_i = simulate_model(sample,m)
+#     if i == len(inds)-1:
+#         plt.plot(y_pred_i, alpha=0.5, color='black', label='predicted')
+#     else:
+#         plt.plot(y_pred_i, alpha=0.1, color='black')
+# plt.plot(y_obs, 'o', alpha=0.5, label='observed')
+# plt.ylabel('ion flux [M/s]')
+# plt.xlabel('time [s]')
 
-locs, labels = plt.xticks()
-print(locs)
-print(labels)
+# locs, labels = plt.xticks()
+# print(locs)
+# print(labels)
 
-plt.xticks(locs[1:-1], locs[1:-1]*0.04)
+# plt.xticks(locs[1:-1], locs[1:-1]*0.04)
 
-plt.legend()
-plt.tight_layout()
-plt.title(r'Comparing predicted and observed flux traces ')
-plt.savefig('output.png')
+# plt.legend()
+# plt.tight_layout()
+# plt.title(r'Comparing predicted and observed flux traces ')
+# plt.savefig('output.png')
 
-####
-exit()
+# ####
+
 
 
 ### intialization
@@ -672,8 +675,8 @@ seed = 1234
 np.random.seed(seed)
 start_time = datetime.now()
 time_str = time.strftime("%Y%m%d_%H%M%S") 
-filename=f'DEBUG_intermediate_transporter_{time_str}'
-new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter_prior_shift')
+filename=f'intermediate_transporter_{time_str}'
+new_dir = pathlib.Path('/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/', f'{time_str}_intermediate_transporter')
 new_dir.mkdir(parents=True, exist_ok=True)
 
 sigma_ref = 1e-13
@@ -701,6 +704,21 @@ p_synth[11] = sigma_ref
 
 m = init_model(p_synth)
 y_ref = simulate_model(p_synth,m)
+
+labels = [
+    'rxn2_k1',
+    'rxn2_k2',
+    'rxn3_k1',
+    'rxn3_k2',
+    'rxn4_k1',
+    'rxn4_k2',
+    'rxn6_k1',
+    'rxn6_k2',
+    'rxn11_k1',
+    'rxn11_k2',
+    'rxn12_k1',
+    'sigma'
+]
 
 
 #datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_all_data.csv'
@@ -734,12 +752,21 @@ if use_pt_sampler==True:
         p0_list.append(pos_list)
     p0 = np.asarray(p0_list)
     assert(np.shape(p0) == (n_temps,n_walkers,n_dim))
-    
+
     sampler=mc.PTSampler(n_temps, n_walkers, n_dim, log_likelihood, log_prior, loglargs=[y_obs, m] )
+
+
     i=0
     for p, lnprob, lnlike in sampler.sample(p0, iterations=n_burn):
         print(f'{i+1}/{n_burn}')
         i+=1
+    
+    pt_samples_burn = sampler.flatchain[0,:,:]
+    logl_burn = sampler.lnlikelihood[0,:,:].reshape((-1))
+    samples_df_burn = pd.DataFrame(pt_samples_burn, columns=labels)
+    samples_df_burn['logl'] = logl_burn
+    samples_df_burn.to_csv(new_dir/f'{filename}_data_burn.csv')
+
     sampler.reset()
     i=0
     for p, lnprob, lnlike in sampler.sample(p, lnprob0=lnprob,
@@ -828,7 +855,8 @@ k_conf = np.log10(1e2)
 
 # prior shift (testing)
 # s = [-1,1, -1, 1,-1]
-s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+# s = [-0.5, 0.5, -0.5, 0.5, -0.5]
+s = [0, 0, 0, 0, 0,]
 k_conf_range = (-1-s[0],5-s[0])
 k_H_on_range = (7-s[1],13-s[1])
 k_H_off_range = (0-s[2],6-s[2])

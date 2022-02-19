@@ -21,7 +21,7 @@ data_amount = 1 # 0.5 = keep 50% of data per experiment stage
 three_exp = False
 
 # check environment (fix this later)
-use_pt_sampler = True
+use_pt_sampler = False
 conda_env = os.environ['CONDA_PREFIX']
 print(f'pt sampler={use_pt_sampler}')
 print(conda_env)
@@ -717,11 +717,6 @@ assert(not np.array_equal(y_ref,y_1))
 assert(not np.array_equal(y_0,y_1))
 
 
-
-print(te.getODEsFromModel(m))
-exit()
-
-
 datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data_v2.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
@@ -811,7 +806,7 @@ new_dir.mkdir(parents=True, exist_ok=True)
 
 
 
-n_walkers = 50
+n_walkers = 200
 n_steps = int(1e4)
 n_burn = int(0.1*n_steps)
 n_temps = 4
@@ -827,12 +822,12 @@ if use_pt_sampler==True:
 
             print('WARNING: using synthetic reference as initial walker position!')
             p0_tmp = np.zeros(n_dim)
-            for i, p in enumerate(p_max_sampled):
-                if i == n_dim-1:  # sigma
-                    p0_tmp[i] = p*(1+np.random.uniform(-0.01,0.01))
-                else:
-                    p0_tmp[i] = p+np.random.uniform(0, 0.01)
-            # p0_tmp = randomize_model_parameters(np.zeros(n_dim))  # default
+            # for i, p in enumerate(p_max_sampled):
+            #     if i == n_dim-1:  # sigma
+            #         p0_tmp[i] = p*(1+np.random.uniform(-0.01,0.01))
+            #     else:
+            #         p0_tmp[i] = p+np.random.uniform(0, 0.01)
+            p0_tmp = randomize_model_parameters(np.zeros(n_dim))  # default
            
             pos_list.append(p0_tmp)
         p0_list.append(pos_list)
@@ -863,9 +858,14 @@ if use_pt_sampler==True:
         pass
     assert sampler.chain.shape == (n_temps, n_walkers, n_steps, n_dim)
 else:
+    # move_list=[
+    #     (mc.moves.DESnookerMove(), 0.5),
+    #     (mc.moves.StretchMove(), 0.5)
+    # ]
     move_list=[
-        (mc.moves.DESnookerMove(), 0.5),
-        (mc.moves.StretchMove(), 0.5)
+        (mc.moves.KDEMove(), 0.4),
+        (mc.moves.DESnookerMove(), 0.3),
+        (mc.moves.StretchMove(), 0.3)
     ]
     p0_list = []
     for i in range(n_walkers):
