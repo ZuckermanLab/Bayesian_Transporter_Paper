@@ -1,3 +1,4 @@
+from re import X
 import tellurium as te
 import numpy as np
 import matplotlib.pyplot as plt
@@ -590,6 +591,81 @@ def energy_to_rate(p):
 
 
 ##### TESTING
+
+params = {'legend.fontsize': 'xx-large',
+          'figure.figsize': (12, 10),
+         'axes.labelsize': 'xx-large',
+         'axes.titlesize':'xx-large',
+         'xtick.labelsize':'xx-large',
+         'ytick.labelsize':'xx-large'}
+plt.rcParams.update(params)
+
+####
+sigma_ref = 1e-13
+k_H_on = np.log10(1e10)
+k_H_off = np.log10(1e3)
+k_S_on = np.log10(1e7)
+k_S_off = np.log10(1e3)
+k_conf = np.log10(1e2)
+
+p_synth = np.zeros(12)
+p_synth[0] = k_H_on
+p_synth[1] = k_H_off
+p_synth[2] = k_S_off
+p_synth[3] = k_S_on
+p_synth[4] = k_conf
+p_synth[5] = k_conf
+p_synth[6] = k_conf
+p_synth[7] = k_conf
+p_synth[8] = k_S_on
+p_synth[9] = k_S_off
+p_synth[10] = k_H_off
+#p_synth[11] = k_H_on
+#p_synth[12] = sigma_ref
+p_synth[11] = sigma_ref
+
+m = init_model(p_synth)
+
+
+
+y_ref = simulate_model(p_synth,m)
+datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/transporter_int_2exp_2stage_half_data.csv'
+
+y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
+
+import numpy as np
+fname = '/Users/georgeau/Desktop/research_data/local_macbook/intermediate_transporter/20220127_180709_intermediate_transporter/DEBUG_intermediate_transporter_20220127_180709_data.csv'
+n_cols = 12
+col_list = [i+1 for i in range(n_cols)]  # only keep columns 1...n_p-1 
+D = np.genfromtxt(fname, delimiter=',', skip_header=1,usecols=col_list)  
+inds = np.random.randint(len(D), size=100)
+
+for i, ind in enumerate(inds):
+    sample = D[ind]
+  
+    y_pred_i = simulate_model(sample,m)
+    if i == len(inds)-1:
+        plt.plot(y_pred_i, alpha=0.5, color='black', label='predicted')
+    else:
+        plt.plot(y_pred_i, alpha=0.1, color='black')
+plt.plot(y_obs, 'o', alpha=0.5, label='observed')
+plt.ylabel('ion flux [M/s]')
+plt.xlabel('time [s]')
+
+locs, labels = plt.xticks()
+print(locs)
+print(labels)
+
+plt.xticks(locs[1:-1], locs[1:-1]*0.04)
+
+plt.legend()
+plt.tight_layout()
+plt.title(r'Comparing predicted and observed flux traces ')
+plt.savefig('output.png')
+
+####
+exit()
+
 
 ### intialization
 seed = 1234

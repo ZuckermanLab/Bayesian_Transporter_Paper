@@ -717,6 +717,11 @@ assert(not np.array_equal(y_ref,y_1))
 assert(not np.array_equal(y_0,y_1))
 
 
+
+print(te.getODEsFromModel(m))
+exit()
+
+
 datafile = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/scripts/t_2c_2exp_2stage_all_data_v2.csv'
 
 y_obs = np.loadtxt(f'{datafile}', delimiter=',', skiprows=1, usecols=1).tolist()  # load data from file
