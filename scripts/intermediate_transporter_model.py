@@ -703,6 +703,88 @@ p_synth[10] = k_H_off
 p_synth[11] = sigma_ref
 
 m = init_model(p_synth)
+
+### testing
+p = np.zeros(12)
+p[0] = k_H_on
+p[1] = k_H_off
+p[2] = k_S_off
+p[3] = k_S_on
+p[4] = k_conf
+p[5] = k_conf
+p[6] = k_conf
+p[7] = k_conf
+p[8] = k_S_on
+p[9] = k_S_off
+p[10] = k_H_off
+#p_synth[11] = k_H_on
+#p_synth[12] = sigma_ref
+p[11] = sigma_ref
+
+z = init_model(p)
+# reset z to initial
+z.resetToOrigin()
+
+#update pH
+z.H_out_activation = 5e-8
+
+# update rate constants
+
+z.rxn2_k1 = 10**p[0]
+z.rxn2_k2 = 10**p[1]
+z.rxn3_k1 = 10**p[2]
+z.rxn3_k2 = 10**p[3]
+z.rxn4_k1 = 10**p[4]
+z.rxn4_k2 = 10**p[5]
+z.rxn6_k1 = 10**p[6]
+z.rxn6_k2 = 10**p[7]
+z.rxn11_k1 = 10**p[8]
+z.rxn11_k2 = 10**p[9]
+z.rxn12_k1 = 10**p[10]
+
+# cycle 1 constraint
+c1_fwd = (10**p[0])*(10**p[2])*(10**p[4])*(10**p[6])*(10**p[8])*(10**p[10])
+c1_rev_wo_rxn12_k2 =  (10**p[1])*(10**p[3])*(10**p[5])*(10**p[7])*(10**p[9])
+z.rxn12_k2 = c1_fwd/c1_rev_wo_rxn12_k2
+assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
+
+
+# set tolerances for simulations
+z.integrator.absolute_tolerance = 1e-16
+z.integrator.relative_tolerance = 1e-14
+
+n_stage = 3  # number of stages: equilibration, activation, reversal
+t_stage = 5  # time length for each stage (in sec) to allow for equilibration
+n_iter_stage = 5e3  # how many how many ODE solver iterations per stage
+t_res = 0.04  # time resolution (sec)
+n_samples_stage = int(t_stage / t_res)  # how many data points per stage
+
+t_0 = 0
+t_f = int(np.floor(n_stage * t_stage))
+n_iter = int(np.floor(n_iter_stage * n_stage))
+idx_s2 = int(np.floor(n_iter_stage))
+step_size = int(np.floor(n_iter_stage / n_samples_stage))
+D = z.simulate(t_0, t_f, n_iter)
+
+fig = z.plot()
+plt.savefig('test_te.png')
+names = [
+    't',
+    'OF',
+    'OF_Hb',
+    'IF_Hb',
+    'S_in',
+    'IF_Hb_Sb',
+    'H_in',
+    'IF_Sb',
+    'OF_Sb',
+    'IF',
+    'OF_Hb_Sb',
+]
+pd.DataFrame(D, columns=names).to_csv('te_data.csv')
+exit() ### end testing
+
+
 y_ref = simulate_model(p_synth,m)
 
 labels = [
