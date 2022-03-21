@@ -169,6 +169,7 @@ def init_model(p):
             """ 
 
     z = te.loada(antimony_string)
+    z.exportToSBML('antiporter_1c.xml', current=False)
     return z
 
 
@@ -272,8 +273,8 @@ def simulate_model(p, z):
     assert(np.isclose((c1_fwd/(c1_rev_wo_rxn12_k2*z.rxn12_k2)),1))
 
     # set tolerances for simulations
-    z.integrator.absolute_tolerance = 1e-19
-    z.integrator.relative_tolerance = 1e-17
+    z.integrator.absolute_tolerance = 1e-16
+    z.integrator.relative_tolerance = 1e-14
 
     n_stage = 3  # number of stages: equilibration, activation, reversal
     t_stage = 5  # time length for each stage (in sec) to allow for equilibration
@@ -703,7 +704,7 @@ p_synth[10] = k_H_off
 p_synth[11] = sigma_ref
 
 m = init_model(p_synth)
-
+exit()
 ### testing
 p = np.zeros(12)
 p[0] = k_H_on
