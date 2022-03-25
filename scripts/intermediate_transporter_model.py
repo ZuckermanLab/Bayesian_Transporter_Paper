@@ -704,6 +704,66 @@ p_synth[10] = k_H_off
 p_synth[11] = sigma_ref
 
 m = init_model(p_synth)
+
+### testing
+# rxn2: OF + $H_out -> OF_Hb; --> k1_f, k1_r
+# rxn3: OF_Sb -> OF + $S_out; --> k6_f, k6_r
+# rxn4: OF_Hb -> IF_Hb; --> k2_f, k2_r
+# rxn6: IF_Sb -> OF_Sb; --> k5_f, k5_r
+# rxn11: IF_Hb + S_in -> IF_Hb_Sb; --> k3_f, k3_r   
+# rxn12: IF_Hb_Sb -> IF_Sb + H_in; --> k4_f, k4_r
+
+
+
+
+
+log_k1_f = (8.2034)
+log_k1_r = (3.8008)
+log_k2_f = (2.2226)
+log_k2_r = (-0.0288)
+log_k3_f = (6.2122)
+log_k3_r = (4.0157)
+log_k4_f = (1.5141)
+log_k4_r = (6.9414)
+log_k5_f = (2.9399)
+log_k5_r = (-1.0437)
+log_k6_f = (1.6867)
+log_k6_r = ((log_k1_f+log_k2_f+log_k3_f+log_k4_f+log_k5_f+log_k6_f)-(log_k1_r+log_k2_r+log_k3_r+log_k4_r+log_k5_r))
+
+
+
+# log_k1_f = (10)
+# log_k1_r = (3)
+# log_k2_f = (2)
+# log_k2_r = (3)
+# log_k3_f = (7)
+# log_k3_r = (3)
+# log_k4_f = (3)
+# log_k4_r = (10)
+# log_k5_f = (2)
+# log_k5_r = (2)
+# log_k6_f = (3)
+# log_k6_r = ((log_k1_f+log_k2_f+log_k3_f+log_k4_f+log_k5_f+log_k6_f)-(log_k1_r+log_k2_r+log_k3_r+log_k4_r+log_k5_r))
+
+
+
+p_NUTS = np.zeros(12)
+p_NUTS[0] = log_k1_f  #rxn2
+p_NUTS[1] = log_k1_r
+p_NUTS[2] = log_k6_f
+p_NUTS[3] = log_k6_r
+p_NUTS[4] = log_k2_f
+p_NUTS[5] = log_k2_r
+p_NUTS[6] = log_k5_f
+p_NUTS[7] = log_k5_r
+p_NUTS[8] = log_k3_f
+p_NUTS[9] = log_k3_r
+p_NUTS[10] = log_k4_f
+
+y = simulate_model(p_NUTS,m)
+plt.plot(y)
+plt.savefig('test.png')
+
 exit()
 ### testing
 p = np.zeros(12)
