@@ -8,9 +8,7 @@ import pandas as pd
 import gc
 import psutil
 import ray.util.multiprocessing as mp
-#import multiprocessing as mp
 import ray
-import copy
 
 
 ### 12d transporter
@@ -30,7 +28,7 @@ def calc_norm_log_like(mu,sigma,X):
     return log_likelihood
 
 
-def calc_log_like(K,y_obs,m):  #calc_log_like(K,y_obs,m):
+def calc_log_like(K,y_obs,m):
     m.resetToOrigin()
     m.H_out = 5e-8
     m.integrator.absolute_tolerance = 1e-18
@@ -92,17 +90,12 @@ def calc_log_prior(theta):
 def calc_log_prob(theta, y_obs, extra_parameters):
     '''log of estimated posterior probability'''
 
-    #m = extra_parameters[0]
-    #m_copy = copy.deepcopy(extra_parameters[0])
-    #m_copy = extra_parameters[0]
-    m = copy.copy(extra_parameters[0])
+    m = extra_parameters[0]
     beta = extra_parameters[1]
     log_pr = calc_log_prior(theta)
     if not np.isfinite(log_pr):
         return -np.inf  # ~zero probability
     log_like = calc_log_like(theta, y_obs, m)
-
-    #log_like = calc_log_like(theta, y_obs, m_copy)
     if not np.isfinite(log_like):
         return -np.inf  # ~zero probability 
     else:
@@ -120,34 +113,15 @@ def log_prob_ray_batch(batch_arg_list):
     return [calc_log_prob(arg[0], arg[1], arg[2]) for arg in batch_arg_list]
 
 
-def get_p0(b_list, n, rng):
+def get_p0(b_list, n):
     '''get initial samples'''
-    p0_array = np.transpose(np.array([rng.uniform(b[0],b[1], int(n)) for b in b_list]))
-    return p0_array
-
-@ray.remote
-def get_p0_ray(b_list, n, rng):
-    '''get initial samples'''
-    p0_array = np.transpose(np.array([rng.uniform(b[0],b[1],n) for b in b_list]))
-    return p0_array
-
-
-def get_p0_batch(b_list, n, init_batch_size, rng):
-
-    batch_list = [get_p0(b_list, init_batch_size, rng) for i in range(0, n, init_batch_size)]
-    p0_array = np.vstack(batch_list)
-    return p0_array
-    
-
-def get_p0_batch_ray(b_list, n, init_batch_size, rng):
-    batch_list_refs = [get_p0_ray.remote(b_list, init_batch_size, rng) for i in range(0, n, init_batch_size)]
-    p0_array = np.vstack(ray.get(batch_list_refs))
+    p0_array = np.transpose(np.array([np.random.uniform(b[0],b[1],n) for b in b_list]))
     return p0_array
 
 
 def plot_samples(samples, p_info, beta, run_config):
     
-    n_init_samples, K_walkers, N_steps, fractional_weight_target, seed, ver = run_config
+    n_init_samples, K_walkers, N_steps, fractional_weight_target, seed = run_config
     ### 1D posterior plot
     samples_T = np.transpose(samples)
     fig, ax = plt.subplots(3,4, figsize=(20,15))
@@ -163,7 +137,7 @@ def plot_samples(samples, p_info, beta, run_config):
 
     plt.suptitle(f'1D distributions - beta={beta}')
     plt.tight_layout()
-    plt.savefig(f'TEST_ais_affine_{n_init_samples}i_{K_walkers}w_{N_steps}s_{fractional_weight_target}t_{seed}r_dist_{ver}.png') 
+    plt.savefig(f'affine_{K_walkers}w_{N_steps}s_{seed}r_data.png') 
     
 
 def calculate_weights(log_like, beta_old, beta_new):
@@ -178,7 +152,6 @@ def calculate_next_beta(log_like, beta_old, threshold):
         avg_w_rel =  np.mean(calculate_weights(log_like, beta_old, x))    
         return avg_w_rel-threshold
     
-    # recombine batch weights
     beta_new = sp.optimize.root(f, beta_old).x[0]
     assert(beta_old <= beta_new)
     if beta_new >= 1.0:
@@ -206,24 +179,19 @@ def auto_garbage_collect(pct=80.0):
 if __name__ == "__main__":    
 
 
-    ##### initialize parallelization using Ray
-    n_cpus=int(20)
-    #n_cpus = psutil.cpu_count(logical=False)
+    ### initialize parallelization using Ray
+    #n_cpus=10
+    n_cpus = psutil.cpu_count(logical=False)
     print(f"number of cpus: {n_cpus}")
-
+    ray.init(num_cpus=n_cpus, object_store_memory=2*10**9)
     seed = 42
-    rng = np.random.default_rng(seed)
-    #np.random.seed(seed)
-    #ray.init(num_cpus=n_cpus, object_store_memory=2*10**9)
-    ##### -----------------------------------
+    np.random.seed(seed)
 
-
-    ##### model configuration
+    ### model configuration
     print('model configuration...')
     with open("antiporter_12D_model.txt", "r") as f:
         antimony_string_SS = f.read()
 
-   
     m = te.loada(antimony_string_SS)
     m.integrator.absolute_tolerance = 1e-18
     m.integrator.relative_tolerance = 1e-12
@@ -261,136 +229,75 @@ if __name__ == "__main__":
     ]
     param_ref = [p_i[3] for p_i in p_info]
     labels = [p[0] for p in p_info]
-    b_list = [(p[1], p[2]) for p in p_info]
+    #b_list = [(p[1], p[2]) for p in p_info]  # default
+    b_list = [(p[3]*0.999, p[3]*1.001) if p[3] > 0 else (p[3]*1.001, p[3]*0.999) for p in p_info]  # near global min
 
     for b in b_list:
         assert(b[0]<b[1])
+
     print(param_ref)
     print(b_list)
+ 
     print(f'log_prob_ref: {calc_log_prob(param_ref, y_obs, [m,1])}')
-    ##### -----------------------------------
+   
 
-
-    ##### sampling settings
+    #### sampling settings
     t0 = time.time()
     print(f't0 timestamp: {t0}')
     print('sampling configuration...')
     dim = 12
-    max_iter = 1e5
     save_at = int(10)  # save data every x steps
+    parallel = False
     
-    fractional_weight_target = 0.65
-    n_init_samples = int(1e6)
-    N_steps = int(1e2)
-    K_walkers = int(1e4)
+
+    N_steps = 100
+    K_walkers = 1000
+    n_init_samples = K_walkers
     NK_total_samples = N_steps*K_walkers
     burn_in = int(0.1*NK_total_samples)
-    init_beta_jump_target = 0.0001
-    #init_batch_size = int(n_init_samples/n_cpus)
-    init_batch_size = int(n_init_samples*0.1)
-    #init_ESS = K_walkers
-    init_fractional_weight_target = K_walkers/n_init_samples
 
     M_sub_samples = NK_total_samples - burn_in #10*K_walkers
-    assert ((M_sub_samples < NK_total_samples) & (M_sub_samples >= 2*K_walkers)), f" {M_sub_samples} < {NK_total_samples} and {M_sub_samples} >= {2*K_walkers} "
+    assert ((M_sub_samples < NK_total_samples) & (M_sub_samples >= 2*K_walkers)), f" {M_sub_samples} < {NK_total_samples} and {M_sub_samples} >= {10*K_walkers} "
    
     print(f'#####################')
     print(f'random seed: {seed}')
     print(f'n dim: {dim}')
-    print(f'max iterations: {max_iter}')
     print(f'n init samples: {n_init_samples}')
-    print(f'init beta jump target: {init_beta_jump_target}')
-    print(f'init fractional weight target: {init_fractional_weight_target}')
-    print(f'fractional weight target: {fractional_weight_target}')
     print(f'N steps: {N_steps}')
     print(f'K walkers: {K_walkers}')
     print(f'M sub samples: {M_sub_samples}')
     print(f'NK total samples: {NK_total_samples}')
     print(f'burn in: {burn_in}')
-    print(f'initial batch size: {init_batch_size}')
     print(f'#####################')
-    ##### -----------------------------------
 
-
-    ##### initialization at beta=0
+    ### step 1: initialization
     print('initializing...')
-    beta=0.0
-    t0_2 = time.time()
-    samples = get_p0(b_list, n_init_samples, rng)
-    assert(np.shape(samples)==(n_init_samples, dim))
-    tf_2 = time.time()
-    print(f'initial walker shape: {np.shape(samples)}')
-    print(f'p0: {samples[0:2]}')
-    print(f"samples.size {samples.size } * samples.itemsize {samples.itemsize} = {samples.size * samples.itemsize}")
-    print(f"initial uniform sampling wall clock: {tf_2 - t0_2}")
-    ##### -----------------------------------
-
-
-    ##### sampling routine
-    print('sampling...')
-    iter_i = 0
-    while (beta <1) and (iter_i < max_iter):
+   
+    p0 = get_p0(b_list, n_init_samples)
+    assert(np.shape(p0)==(n_init_samples, dim))
+   
+    print(f'initial walker shape: {np.shape(p0)}')
+    print(f'p0: {p0[0:2]}')
+    print(f"p0.size {p0.size } * samples.itemsize {p0.itemsize} = {p0.size * p0.itemsize}")
     
-        if iter_i ==0:
-            print("beta=0 calculating log likelihood and weights")
-            t0_3 = time.time()
-            log_like = np.nan_to_num(np.array([calc_log_prob(theta_i,y_obs,[m,1]) for theta_i in samples]))
-            assert(np.isnan(log_like).any()==False and np.isinf(log_like).any()==False) # no NaN or Inf
-            beta_new = calculate_next_beta(log_like, beta, init_fractional_weight_target)
-            p_rel = calculate_p_rel(log_like, beta, beta_new)
-            tf_3 = time.time()
-            print(f"calculating log likelihood and weights: wall clock for {len(samples)} = {tf_3 - t0_3}s")
-            print(f"beta_new={beta_new}")
-            assert(beta_new>=init_beta_jump_target)   
-        else:
-            print("calculating log likelihood and weights")
-            t0_3 = time.time()
-            log_like = np.nan_to_num(np.array([calc_log_prob(theta_i,y_obs,[m,1]) for theta_i in samples]))
-            assert(np.isnan(log_like).any()==False and np.isinf(log_like).any()==False) # no NaN or Inf
-            beta_new = calculate_next_beta(log_like, beta, fractional_weight_target)
-            p_rel = calculate_p_rel(log_like, beta, beta_new)
-            tf_3 = time.time()
-            print(f"calculating log likelihood and weights: wall clock for {len(samples)} = {tf_3 - t0_3}s")
-        
-        print('resampling')
-        t_tmp = time.time()
-        resamples_index = rng.choice([ i for i in range(len(samples))],size=K_walkers,p=p_rel)
-        resamples = samples[resamples_index]
-        p0 = np.array([s for s in resamples])
-        assert(np.shape(p0)==(K_walkers, dim))
-        print(f'resampling wall clock: {time.time()-t_tmp}')
 
-        print('running affine sampler')
-        t_tmp = time.time()
-        
-        with mp.Pool(processes=n_cpus) as pool:
-            sampler = emcee.EnsembleSampler(K_walkers, dim, calc_log_prob, args=[y_obs, [m,beta_new]], pool=pool)
+    if parallel==True:
+        print('parallel sampling...')
+        with mp.Pool() as pool:
+            sampler = emcee.EnsembleSampler(K_walkers, dim, calc_log_prob, args=[y_obs, [m,1]], pool=pool)
             state = sampler.run_mcmc(p0, N_steps)
-        #sampler = emcee.EnsembleSampler(K_walkers, dim, calc_log_prob, args=[y_obs, [m,beta_new]])
-        #state = sampler.run_mcmc(p0, N_steps)
+    else:
+        print('serial sampling...')
+        sampler = emcee.EnsembleSampler(K_walkers, dim, calc_log_prob, args=[y_obs, [m,1]])
+        state = sampler.run_mcmc(p0, N_steps)
 
-        samples = sampler.flatchain[burn_in:]
-        print(f'i={iter_i}, new beta={beta_new:.2g}, old beta={beta:.2g}, delta beta={(beta_new-beta):.2g}')
-        print(f"sampling wall clock: {time.time()-t_tmp}s")
-  
-        if iter_i%save_at == 0:
-            print('saving current samples and beta...')
-            np.savetxt(f'ais_affine_{n_init_samples}i_{K_walkers}w_{N_steps}s_{fractional_weight_target}t_{seed}r_data_tmp.csv',
-            samples, delimiter=',', header=",".join(labels), comments=f'# i={iter_i}, beta={beta_new} ')
+    samples = sampler.flatchain[burn_in:]
 
-        iter_i = iter_i +1
-        beta=beta_new
-    ##### -----------------------------------
-
-
-    ##### results
     tf = time.time()
-    print(f'{iter_i} beta steps')
     print(f'wall clock: {tf-t0} s')
-    print(f'{(iter_i*NK_total_samples)/(tf-t0)} samples/sec' )
+    print(f'{(NK_total_samples)/(tf-t0)} samples/sec' )
 
-    plot_samples(samples,p_info, beta_new, [n_init_samples, K_walkers, N_steps, fractional_weight_target, seed, "1"])
+    plot_samples(samples,p_info, 1, [n_init_samples, K_walkers, N_steps, 1, seed])
     df = pd.DataFrame(samples, columns=[i[0] for i in p_info])
-    df.to_csv(f'ais_affine_{n_init_samples}i_{K_walkers}w_{N_steps}s_{fractional_weight_target}t_{seed}r_data.csv')
-    #ray.shutdown()
-    ##### -----------------------------------
+    df.to_csv(f'affine_{K_walkers}w_{N_steps}s_{seed}r_data.csv')
+
