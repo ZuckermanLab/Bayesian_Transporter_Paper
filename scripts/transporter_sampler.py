@@ -5,6 +5,9 @@ import emcee
 import matplotlib.pyplot as plt
 import time
 import pickle
+from datetime import datetime
+import os
+import json
 
 mp.set_start_method('fork')
 
@@ -35,7 +38,6 @@ def calc_log_like(K,y_obs,m):
     m.integrator.absolute_tolerance = 1e-18
     m.integrator.relative_tolerance = 1e-12
 
-
     # update tellurium model parameter values (rate constants)
     for i, idx in enumerate(idx_list):
         setattr(m, f'k{i+1}_f', 10**K[idx])
@@ -59,6 +61,8 @@ def calc_log_prior(p):
     '''calculates the log of uniform prior distribution
     if parameter is in range, the probability is log(1)-->0, else log(0)-->-inf
     '''
+
+    # fix this later - should connect w/ parameter info data file
     b = 2  # shift parameter priors by 2 (orders of magnitude) to be non-centered
     lb = np.array([6, -1, -2, -2, 3, -1, -1, 6, -2, -2, -1]) + b  # log10 rate constant prior lower bound + shift
     ub = np.array([12, 5, 4, 4, 9, 5, 5, 12, 4, 4, 5]) + b  # log10 rate constant prior upper bound + shift
@@ -112,17 +116,20 @@ def parse_p_info(p_info, near_global_min=True):
 def wrapper(arg_list):
     '''wrapper function to make and run ensemble sampler object in parallel'''
 
-    n_walkers = 2000 # for test
-    n_dim = 12
-    #n_steps = 10
-    n_steps=int(10)  # serial mode n_steps = n_steps * n_mixing_stages
+
     log_prob = arg_list[0]
     log_prob_args = arg_list[1]
     p_0 = arg_list[2]
     antimony_string_SS = arg_list[3]
+    backend_fname = arg_list[4][0]
+    backend_rname = arg_list[4][1]  
+    n_dim = int(arg_list[5][0])
+    n_walkers = int(arg_list[5][1])
+    n_steps = int(arg_list[5][2])
     new_roadrunner = te.loada(antimony_string_SS)
     log_prob_args[-1][0] = new_roadrunner
-    sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args,)   
+    backend = emcee.backends.HDFBackend(backend_fname, name=backend_rname)
+    sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args, backend=backend)   
     # moves=[
     #     (emcee.moves.DEMove(), 0.2),
     #     (emcee.moves.DESnookerMove(), 0.2),
@@ -137,178 +144,129 @@ def wrapper(arg_list):
 
 if __name__ == "__main__":
 
-
-    # seed = 42
-    # np.random.seed(seed)
-    # ### model settings
-    # n_parallel = 4
-    # model_file = "antiporter_12D_model.txt"
-    # obs_data_file = "data_grid_test3_1exp_v2.csv"
-
-    # with open(model_file, "r") as f:
-    #     antimony_string_SS = f.read()
-    # y_obs_list = [np.genfromtxt(obs_data_file) for i in range(n_parallel)]
-    # log_post_args = [[y_obs_list[i], [None, 1]] for i in range(n_parallel)]  # replace 'none' later w/ tellurium model (roadrunner)
-
-    # # fix this - make seperate file
-    # p_info = [   
-    #     ["log_k1_f",6,12,10],
-    #     ["log_k1_r",-1,5,3],
-    #     ["log_k2_f",-2,4,2],
-    #     ["log_k2_r",-2,4,2],
-    #     ["log_k3_f",3,9,7],
-    #     ["log_k3_r",-1,5,3],
-    #     ["log_k4_f",-1,5,3],
-    #     ["log_k4_r",6,12,10],
-    #     ["log_k5_f",-2,4,2],
-    #     ["log_k5_r",-2,4,2],
-    #     ["log_k6_f",-1,5,3],
-    #     ["log_sigma",np.log10(5e-14), np.log10(5e-13), -13],
-    # ]  
-    # p_ref, p_labels, p_bounds = parse_p_info(p_info, near_global_min=True)
-    # p_0 = [get_p0(p_bounds, 100) for i in range(n_parallel)]
-    # print(np.shape(p_0))
-
-    # arg_list = (calc_log_post, log_post_args[0], p_0[0], antimony_string_SS)
-
-    # # Serial sampling
-    # serial_result = wrapper(arg_list)
-    # serial_log_probs = serial_result[0].get_log_prob(flat=True)
-    # assert serial_log_probs[0] > 0
-
-    # # Parallel sampling
-    # parallel_arg_list = [(calc_log_post, log_post_args[i], p_0[i], antimony_string_SS) for i in range(n_parallel)]
-    # with mp.Pool(n_parallel) as pool:
-    #     parallel_result = pool.map(wrapper, parallel_arg_list)
-    # parallel_log_probs = [_result[0].get_log_prob(flat=True) for _result in parallel_result]
-    # for i in range(n_parallel):
-    #     plt.plot(parallel_log_probs[i], alpha=0.75, label=f'parallel ensemble {i}')
-    # plt.plot(serial_log_probs, color='k', label=f'serial ensemble')
-    # plt.title('Aggregated enesmble log probabilities vs iteration')
-    # plt.legend()
-    # plt.savefig('test.png')
-    # plt.clf()
-    # for i in range(n_parallel):
-    #     plt.hist(parallel_log_probs[i], bins=100, density=True, label=f'parallel ensemble {i}', histtype='step', alpha=0.75)
-    # plt.hist(serial_log_probs, bins=100, color='k', density=True, label=f'serial ensemble', histtype='step', alpha=0.75)
-    # plt.title('ensemble log probability distributions')
-    # plt.legend()
-    # plt.savefig('test2.png')
-
-
-    out_fname='test_parallel_long_2'
+    ### input arguments
+    model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_12D_model.txt"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc.csv"
+    parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/12D_transporter_w_full_priors.json"
+    parallel = False
     seed = 42
-    np.random.seed(seed)
-
     n_parallel = 6
-    model_file = "antiporter_12D_model.txt"
-    obs_data_file = "data_grid_test3_1exp_v2.csv"
-    n_ensembles = n_parallel
-    n_walkers = 2000
+    n_walkers = 100
     n_dim = 12
     n_steps = 10
-    n_shuffles = 1000
+    n_shuffles = 10
+    thin = 1
+    n_ensembles = n_parallel
+    np.random.seed(seed)
 
+    ### file i/o - create new directory, load tellurium model string, and load model parameter info
+    date_string = datetime.today().strftime('%Y%m%d_%H%M%S')
+    out_fname=f'run_d{date_string}_p{parallel}_np{n_parallel}_nw{n_walkers}_ns{n_steps}_nd{n_dim}_nsh{n_shuffles}_t{thin}_r{seed}'
+    current_directory = os.getcwd()
+    final_directory = os.path.join(current_directory, out_fname)
+    if not os.path.exists(final_directory):
+        os.makedirs(final_directory)
     with open(model_file, "r") as f:
         antimony_string_SS = f.read()
+    with open (parameter_file, 'rb') as fp:
+        p_info = json.load(fp)
+    p_ref, p_labels, p_bounds = parse_p_info(p_info, near_global_min=False)
+    _, _, p_bounds2 = parse_p_info(p_info, near_global_min=False)  # for plot (useful if starting near global max)
+
+    ### set log likelihood arguments and initial parameter sets
     y_obs_list = [np.genfromtxt(obs_data_file) for i in range(n_parallel)]
     log_post_args = [[y_obs_list[i], [None, 1]] for i in range(n_parallel)]  # replace 'none' later w/ tellurium model (roadrunner)
-
-    # fix this - make seperate file
-    p_info = [   
-        ["log_k1_f",6,12,10],
-        ["log_k1_r",-1,5,3],
-        ["log_k2_f",-2,4,2],
-        ["log_k2_r",-2,4,2],
-        ["log_k3_f",3,9,7],
-        ["log_k3_r",-1,5,3],
-        ["log_k4_f",-1,5,3],
-        ["log_k4_r",6,12,10],
-        ["log_k5_f",-2,4,2],
-        ["log_k5_r",-2,4,2],
-        ["log_k6_f",-1,5,3],
-        ["log_sigma",np.log10(5e-14), np.log10(5e-13), -13],
-    ]  
-    p_ref, p_labels, p_bounds = parse_p_info(p_info, near_global_min=False)
-    _, _, p_bounds2 = parse_p_info(p_info, near_global_min=False)
+    backend_fname_list = [f"{final_directory}/ensemble_{i}.h5" for i in range(n_parallel)]
     p_0 = [get_p0(p_bounds, n_walkers) for i in range(n_parallel)]
-    #print(np.shape(p_0))
 
-    # # Serial sampling
-    # arg_list = (calc_log_post, log_post_args[0], p_0[0], antimony_string_SS)
-    # t0 = time.time()
-    # serial_result = wrapper(arg_list)
-    # print(f'{time.time()-t0} sec')
-    # # serial_log_probs = serial_result[0].get_log_prob(flat=True)
-    # # #assert serial_log_probs[0] > 0
-    # serial_samples = serial_result[0].get_chain(flat=True)
-    
-    # n_bins = 100
-    # fig, axs = plt.subplots(4,3, figsize=(15,15))
-    # for i, ax in enumerate(axs.flatten()):  # for each subplot figure (parameter)
-        
-    #     D_tmp = np.transpose(serial_samples)[i] 
-    #     ax.hist(D_tmp, n_bins, histtype="step", density=True, alpha=0.85, color='k')   # plot parameter histogram
-    #     ax.set_title(f'p_{i} distribution')
-    #     ax.set_xlim(p_bounds2[i][0], p_bounds2[i][1])
-    #     ax.axvline(p_ref[i], 0,1, ls='--', color='k')
-    # plt.suptitle('1D parameter distributions - serial run')
-    # plt.tight_layout()
-    # plt.savefig(f'test_serial.png')
-    # plt.close()
-    # np.savetxt("test_serial.csv", serial_samples, delimiter=",")
+    ### write to log file
+    with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
+        f.write(f"date: {date_string}\n")
+        f.write(f"model file: {model_file}\n")
+        f.write(f"parameter file: {parameter_file}\n")
+        f.write(f"data file: {obs_data_file}\n")
+        f.write(f"parallel: {parallel}\n")
+        f.write(f"seed: {seed}\n")
+        f.write(f"n parallel: {n_parallel}\n")
+        f.write(f"n walkers: {n_walkers}\n")
+        f.write(f"n dim: {n_dim}\n")
+        f.write(f"n steps: {n_steps}\n")
+        f.write(f"n shuffles: {n_shuffles}\n")
+        f.write(f"thin by: {thin}\n")
+        f.write(f"out fname: {out_fname}\n")
+        f.write(f"parameter ref: {p_ref}\n")
+        f.write(f"parameter labels: {p_labels}\n")
+        f.write(f"parameter boundaries: {p_bounds}\n")
+        f.write(f"initial parameters p_0[0]: {p_0[0]}\n")
 
+    ### serial affine invariant ensemble sampler (using Emcee)
+    if parallel == False:
+        # run sampler
+        backend_label = (backend_fname_list[0],"shuffle_0")
+        arg_list = (calc_log_post, log_post_args[0], p_0[0], antimony_string_SS, (backend_fname_list[0],f"shuffle_0.h5"),(n_dim, n_walkers, n_steps))
+        t0 = time.time()
+        serial_result = wrapper(arg_list)   
+        wallclock = time.time()-t0
+        serial_samples = serial_result[0].get_chain(flat=True, thin=thin)
 
-
-    # Parallel sampling
-    t0 = time.time()
-    sample_list = []
-    log_prob_list = []
-    for i in range(n_shuffles):
-        parallel_arg_list = [(calc_log_post, log_post_args[i], p_0[i], antimony_string_SS) for i in range(n_parallel)]
-        with mp.Pool(n_parallel) as pool:
-            parallel_result = pool.map(wrapper, parallel_arg_list)
-        samples_tmp = [_result[0].get_chain(flat=True) for _result in parallel_result]
-        log_prob_tmp = [_result[0].get_log_prob(flat=True) for _result in parallel_result]
-        last_samples = [_result[0].get_chain()[-1] for _result in parallel_result]
-        agg_samples = np.reshape(last_samples, (n_ensembles*n_walkers, n_dim))
-        np.random.shuffle(agg_samples)
-        p_0 = np.reshape(agg_samples, (n_ensembles, n_walkers, n_dim))
-        sample_list.append(samples_tmp)
-        log_prob_list.append(log_prob_tmp)
-    print(f'{time.time()-t0} sec')
-    print(np.shape(sample_list))
-
-    
-    with open(f'{out_fname}.pickle', 'wb') as fp:
-        pickle.dump(sample_list, fp)
-    
-    #with open (f'{out_fname}.pickle', 'rb') as fp:
-    #    sample_list = pickle.load(fp)
-
-    n_bins = 100
-    cmap = plt.get_cmap('inferno')
-    color = [cmap(1.*i/n_shuffles) for i in range(n_shuffles)]
-
-    fig, axs = plt.subplots(4,3, figsize=(15,15))
-    for k in range(n_shuffles):
-        tmp = sample_list[k]
-        for i, ax in enumerate(axs.flatten()):  # for each subplot figure (parameter)
-            s = np.array(0.0)
-            n = np.array(0.0)
-            for j in range(n_ensembles):
-                D_tmp = np.transpose(tmp[j])[i]
-                s = s + D_tmp
-                #ax.hist(D_tmp, n_bins, histtype="step", density=True, label=f'idx {j}', alpha=0.75)   # plot parameter histogram
-            avg = s/n_ensembles 
-            ax.hist(avg, n_bins, histtype="step", density=True, alpha=0.85, color=color[k])   # plot parameter histogram
-            
-            #ax.hist(s/n, n_bins, histtype="step", density=True, label=f'avg', color='k')
-            #ax.legend()
+        # plot histogram and save data
+        n_bins = 100
+        fig, axs = plt.subplots(4,3, figsize=(15,15))
+        for i, ax in enumerate(axs.flatten()):  # for each subplot figure (parameter)  
+            D_tmp = np.transpose(serial_samples)[i] 
+            ax.hist(D_tmp, n_bins, histtype="step", density=True, alpha=0.85, color='k')   # plot parameter histogram
             ax.set_title(f'p_{i} distribution')
             ax.set_xlim(p_bounds2[i][0], p_bounds2[i][1])
             ax.axvline(p_ref[i], 0,1, ls='--', color='k')
-    plt.suptitle('Average ensemble 1D parameter distributions')
-    plt.tight_layout()
-    plt.savefig(f'{out_fname}.png')
-    plt.close()
+        plt.suptitle('1D parameter distributions - serial run')
+        plt.tight_layout()
+        plt.savefig(f'{final_directory}/{out_fname}_distributions.png')
+        plt.close()
+        np.savetxt(f"{final_directory}/{out_fname}_samples.csv", serial_samples, delimiter=",")
+    
+    ### parallel affine invariant ensemble sampler (using Emcee) w/ shuffling
+    else:
+        # run sampler 
+        t0 = time.time()
+        sample_list = []
+        for i in range(n_shuffles):
+            parallel_arg_list = [
+                (calc_log_post, log_post_args[j], p_0[j], antimony_string_SS, (backend_fname_list[j],f"shuffle_{i}.h5"), (n_dim, n_walkers, n_steps)) for j in range(n_parallel)]
+            with mp.Pool(n_parallel) as pool:
+                parallel_result = pool.map(wrapper, parallel_arg_list)
+            samples_tmp = [_result[0].get_chain(flat=True, thin=thin) for _result in parallel_result]
+            last_samples = [_result[0].get_chain()[-1] for _result in parallel_result]
+            agg_samples = np.reshape(last_samples, (n_ensembles*n_walkers, n_dim))
+            np.random.shuffle(agg_samples)
+            p_0 = np.reshape(agg_samples, (n_ensembles, n_walkers, n_dim))
+            sample_list.append(samples_tmp)
+        wallclock = time.time()-t0
+        
+        # plot histogram and save data
+        with open(f'{final_directory}/{out_fname}_sample_list.pickle', 'wb') as fp:
+            pickle.dump(sample_list, fp)
+        n_bins = 100
+        cmap = plt.get_cmap('inferno')
+        color = [cmap(1.*i/n_shuffles) for i in range(n_shuffles)]
+        fig, axs = plt.subplots(4,3, figsize=(15,15))
+        for k in range(n_shuffles):
+            tmp = sample_list[k]
+            for i, ax in enumerate(axs.flatten()):  # for each subplot figure (parameter)
+                s = np.array(0.0)
+                n = np.array(0.0)
+                for j in range(n_ensembles):
+                    D_tmp = np.transpose(tmp[j])[i]
+                    s = s + D_tmp
+                avg = s/n_ensembles 
+                ax.hist(avg, n_bins, histtype="step", density=True, alpha=0.85, color=color[k])   # plot parameter histogram
+                ax.set_title(f'p_{i} distribution')
+                ax.set_xlim(p_bounds2[i][0], p_bounds2[i][1])
+                ax.axvline(p_ref[i], 0,1, ls='--', color='k')
+        plt.suptitle('Average ensemble 1D parameter distributions')
+        plt.tight_layout()
+        plt.savefig(f'{final_directory}/{out_fname}_distributions.png')
+        plt.close()
+
+    ### write wall clock time to file
+    with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
+        f.write(f"wall clock: {wallclock} sec\n")
