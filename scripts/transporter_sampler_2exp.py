@@ -1,4 +1,3 @@
-from xml.etree.ElementTree import TreeBuilder
 import numpy as np
 import tellurium as te
 import multiprocessing as mp
@@ -10,7 +9,7 @@ from datetime import datetime
 import os
 import json
 
-mp.set_start_method('fork')
+#mp.set_start_method('fork')
 
 
 def calc_norm_log_like(mu,sigma,X):
@@ -49,12 +48,36 @@ def calc_log_like(K,y_obs,m):
     m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
 
     try:
-        D_tmp = m.simulate(0, 5, 50, selections=['time', 'rxn4'])
+        D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
         y_tmp = D_tmp['rxn4'][1:]  # remove first point
-        sigma = 10**K[11]
-        log_like_tmp = calc_norm_log_like(y_tmp,sigma,y_obs)
     except:
-        log_like_tmp = -np.inf  # if there is an issue calculating the flux --> no probability
+        log_like_tmp = -np.inf
+        return log_like_tmp
+
+    m.resetToOrigin()
+    m.H_out = 5e-8
+    m.integrator.absolute_tolerance = 1e-18
+    m.integrator.relative_tolerance = 1e-12
+
+    # update tellurium model parameter values (rate constants)
+    for i, idx in enumerate(idx_list):
+        setattr(m, f'k{i+1}_f', 10**K[idx])
+        setattr(m, f'k{i+1}_r', 10**K[idx+1])
+
+    # last rate constant (k6_r) has cycle constraint
+    m.k6_f = 10**K[10]
+    m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+
+    try:
+        D2_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
+        y2_tmp = D2_tmp['rxn4'][1:]  # remove first point
+    except:
+        log_like_tmp = -np.inf
+        return log_like_tmp
+
+    sigma = 10**K[11]
+    y_sim = np.hstack([y_tmp,y2_tmp])
+    log_like_tmp = calc_norm_log_like(y_sim,sigma,y_obs)
     return log_like_tmp
 
 
@@ -78,7 +101,7 @@ def calc_log_prior(p):
 def calc_log_post(theta, y_obs, extra_parameters):
     '''calculate the log of the posterior probability
     log posterior = log likelihood*beta + log prior^beta
-    where beta is used for tempering (set = 1 usually)
+    where beta is used for tempering
     '''
     m = extra_parameters[0]
     beta = extra_parameters[1]
@@ -132,7 +155,7 @@ def wrapper(arg_list):
     log_prob_args[-1][0] = new_roadrunner
     backend = emcee.backends.HDFBackend(backend_fname, name=backend_rname)
     #sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args, backend=backend)   
-    sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args)   
+    sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args)
     # moves=[
     #     (emcee.moves.DEMove(), 0.2),
     #     (emcee.moves.DESnookerMove(), 0.2),
@@ -161,48 +184,54 @@ def run_simulation(K,m):
     m.k6_f = 10**K[10]
     m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
 
-    D_tmp = m.simulate(0, 5, 50, selections=['time', 'rxn4'])
+    D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
     y_tmp = D_tmp['rxn4'][1:]  # remove first point
-   
-    return y_tmp
 
-def get_p0_from_file(fname, n_walkers, n_dim):
-    "gets random samples from a .csv file of samples to use as starting points"
-    D = np.genfromtxt(fname=fname,delimiter=',')
-    indices = np.random.choice(D.shape[0], n_walkers, replace=False)
-    p_0 = D[indices]
-    assert(np.shape(p_0)==(n_walkers, n_dim))
-    return p_0
+    m.resetToOrigin()
+    m.H_out = 5e-8
+    m.integrator.absolute_tolerance = 1e-18
+    m.integrator.relative_tolerance = 1e-12
+
+    # update tellurium model parameter values (rate constants)
+    for i, idx in enumerate(idx_list):
+        setattr(m, f'k{i+1}_f', 10**K[idx])
+        setattr(m, f'k{i+1}_r', 10**K[idx+1])
+
+    # last rate constant (k6_r) has cycle constraint
+    m.k6_f = 10**K[10]
+    m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+
+    D2_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
+    y2_tmp = D2_tmp['rxn4'][1:]  # remove first point
+
+    y_sim = np.hstack([y_tmp,y2_tmp])
+    return y_sim
+
 
 
 if __name__ == "__main__":
 
     ### input arguments
     model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_12D_model.txt"
-    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc_50s.csv"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_2exp_ab_trunc.csv"
     parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/12D_transporter_w_full_priors.json"
+    
     parallel = False
     seed = 42
     n_parallel = 1
-    n_walkers = int(1e2)
+    n_walkers = 100
     n_dim = 12
     n_steps = int(1e5)
     n_shuffles = 1
-    thin = 100
+    thin = 1
+    near_global_min = True
+
     n_ensembles = n_parallel
-    near_global_min = False
     np.random.seed(seed)
-
-    load_samples = True
-    sample_fname = r'/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/run_poco_d20220909_175252_pFalse_nw1000_nd12_nsh1_ngmFalse_r42/samples.csv'
-    
-   
-   
-
 
     ### file i/o - create new directory, load tellurium model string, and load model parameter info
     date_string = datetime.today().strftime('%Y%m%d_%H%M%S')
-    out_fname=f'run_d{date_string}_p{parallel}_np{n_parallel}_nw{n_walkers}_ns{n_steps}_nd{n_dim}_nsh{n_shuffles}_t{thin}_ngm{near_global_min}_r{seed}'
+    out_fname=f'run_2exp_d{date_string}_p{parallel}_np{n_parallel}_nw{n_walkers}_ns{n_steps}_nd{n_dim}_nsh{n_shuffles}_t{thin}_ngm{near_global_min}_r{seed}'
     current_directory = os.getcwd()
     final_directory = os.path.join(current_directory, out_fname)
     if not os.path.exists(final_directory):
@@ -218,12 +247,9 @@ if __name__ == "__main__":
     y_obs_list = [np.genfromtxt(obs_data_file) for i in range(n_parallel)]
     log_post_args = [[y_obs_list[i], [None, 1]] for i in range(n_parallel)]  # replace 'none' later w/ tellurium model (roadrunner)
     backend_fname_list = [f"{final_directory}/ensemble_{i}.h5" for i in range(n_parallel)]
+    p_0 = [get_p0(p_bounds, n_walkers) for i in range(n_parallel)]
+    ref_likelihood = calc_norm_log_like(y_obs_list[0],10**p_ref[-1], y_obs_list[0])
 
-    if load_samples == True:
-        p_0 = [get_p0_from_file(sample_fname,n_walkers,n_dim) for i in range(n_parallel)]
-    else:
-        p_0 = [get_p0(p_bounds, n_walkers) for i in range(n_parallel)]
-    
 
     ### write to log file
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
@@ -243,9 +269,8 @@ if __name__ == "__main__":
         f.write(f"parameter ref: {p_ref}\n")
         f.write(f"parameter labels: {p_labels}\n")
         f.write(f"parameter boundaries: {p_bounds}\n")
-        f.write(f"load samples: {load_samples}\n")
-        f.write(f"samples fname: {sample_fname}\n")
         f.write(f"initial parameters p_0[0]: {p_0[0]}\n")
+        f.write(f"reference likelihood: {ref_likelihood}\n")
 
     ### serial affine invariant ensemble sampler (using Emcee)
     if parallel == False:
@@ -262,11 +287,16 @@ if __name__ == "__main__":
         n_bins = 100
         fig, axs = plt.subplots(4,3, figsize=(15,15))
         for i, ax in enumerate(axs.flatten()):  # for each subplot figure (parameter)  
-            D_tmp = np.transpose(serial_samples)[i] 
-            ax.hist(D_tmp, n_bins, histtype="step", density=True, alpha=0.85, color='k')   # plot parameter histogram
+            D_tmp = np.transpose(serial_samples)[i]
+            D_quartile = np.split(D_tmp,4)
+            Q2 = D_quartile[1]
+            Q4 = D_quartile[3] 
+            ax.hist(Q2, n_bins, histtype="step", density=True, alpha=0.85, color='k', label='q2')   # plot parameter histogram
+            ax.hist(Q4, n_bins, histtype="step", density=True, alpha=0.85, color='red', label='q4')   # plot parameter histogram
             ax.set_title(f'p_{i} distribution')
             ax.set_xlim(p_bounds2[i][0], p_bounds2[i][1])
             ax.axvline(p_ref[i], 0,1, ls='--', color='k')
+            ax.legend()
         plt.suptitle('1D parameter distributions - serial run')
         plt.tight_layout()
         plt.savefig(f'{final_directory}/{out_fname}_distributions.png')
