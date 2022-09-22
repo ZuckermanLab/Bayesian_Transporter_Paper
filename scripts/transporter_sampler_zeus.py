@@ -10,6 +10,7 @@ import os
 import json
 import argparse
 import multiprocess as mp
+import zeus
 
 #mp.set_start_method('fork')
 import os
@@ -54,7 +55,7 @@ def calc_log_like(K,y_obs,m):
     m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
 
     try:
-        D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
+        D_tmp = m.simulate(0, 5, 50, selections=['time', 'rxn4'])
         y_tmp = D_tmp['rxn4'][1:]  # remove first point
         sigma = 10**K[11]
         log_like_tmp = calc_norm_log_like(y_tmp,sigma,y_obs)
@@ -156,26 +157,22 @@ if __name__ == "__main__":
 
     ### input arguments
     model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_12D_model.txt"
-    #obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc_50s.csv"
-    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc.csv"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc_50s.csv"
     parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/12D_transporter_w_full_priors.json"
     parallel = False
     n_cpus = 1
     
-    n_walkers = 1000
+    n_walkers = 24
     n_dim = 12
-    n_shuffles = 1
+    n_steps = 10000
     near_global_min = False
-    additional_samples = int(1e4)
-    save_every = 10
-    gamma = 0.5
-    ess = 0.99
+
     
     np.random.seed(seed)
 
     ### file i/o - create new directory, load tellurium model string, and load model parameter info
     date_string = datetime.today().strftime('%Y%m%d_%H%M%S')
-    out_fname=f'run_poco_d{date_string}_p{parallel}_nw{n_walkers}_nd{n_dim}_ngm{near_global_min}_as{additional_samples}_g{gamma}_ess{ess}_r{seed}'
+    out_fname=f'run_poco_d{date_string}_p{parallel}_nw{n_walkers}_nd{n_dim}_ngm{near_global_min}_ns{n_steps}_r{seed}'
     current_directory = os.getcwd()
     final_directory = os.path.join(current_directory, out_fname)
     if not os.path.exists(final_directory):
@@ -202,9 +199,7 @@ if __name__ == "__main__":
         f.write(f"seed: {seed}\n")
         f.write(f"n walkers: {n_walkers}\n")
         f.write(f"n dim: {n_dim}\n")
-        f.write(f"n additional samples: {additional_samples}\n")
-        f.write(f"gamma: {gamma}\n")
-        f.write(f"ess: {ess}\n")
+        f.write(f"n steps: {n_steps}\n")
         f.write(f"near global min: {near_global_min}\n")
         f.write(f"out fname: {out_fname}\n")
         f.write(f"parameter ref: {p_ref}\n")
@@ -218,88 +213,50 @@ if __name__ == "__main__":
 
     # Initialise sampler
     t0 = time.time()
+    m = te.loada(antimony_string_SS)
+    cb0 = zeus.callbacks.AutocorrelationCallback(ncheck=100, dact=0.01, nact=50, discard=0.5)
+    cb1 = zeus.callbacks.SplitRCallback(ncheck=100, epsilon=0.01, nsplits=2, discard=0.5)
+    cb2 = zeus.callbacks.MinIterCallback(nmin=500)
 
-    
-    if parallel==True:
-        with mp.Pool(n_cpus) as pool:
-
-            sampler = pc.Sampler(
-                n_walkers,
-                n_dim,
-                log_likelihood=calc_log_like,
-                log_prior=calc_log_prior,
-                vectorize_likelihood=False,
-                vectorize_prior=False,
-                bounds=p_bounds,
-                random_state=seed,
-                log_likelihood_args = [y_obs, antimony_string_SS],
-                infer_vectorization=False,
-                output_dir=final_directory,
-                pool=pool
-            )
-
-            # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
-            prior_samples = p_0
-
-            # Start sampling
-            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
-
-            # We can add more samples at the end
-            sampler.add_samples(additional_samples)
-
-            # Get results
-            results = sampler.results
-    else:
-        sampler = pc.Sampler(
-            n_walkers,
-            n_dim,
-            log_likelihood=calc_log_like,
-            log_prior=calc_log_prior,
-            vectorize_likelihood=False,
-            vectorize_prior=False,
-            bounds=p_bounds,
-            random_state=seed,
-            log_likelihood_args = [y_obs, te.loada(antimony_string_SS)],
-            infer_vectorization=False,
-            output_dir=final_directory,
-        )
-
-        # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
-        prior_samples = p_0
-
-        # Start sampling
-        sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
-
-        # We can add more samples at the end
-        sampler.add_samples(additional_samples)
-
-        # Get results
-        results = sampler.results  
-    
-
+    sampler = zeus.EnsembleSampler(n_walkers, n_dim, calc_log_post, args=[y_obs, [m, 1]]) # Initialise the sampler
+    sampler.run_mcmc(p_0, n_steps, callbacks=[cb0, cb1, cb2]) # Run sampling
+    print(sampler.summary) # Print summary diagnostics
+  
     ### write wall clock time to file
     wallclock = time.time() -t0
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
         f.write(f"wall clock: {wallclock} sec\n")
 
     import matplotlib.pyplot as plt
+    
 
-    # Trace plot
-    pc.plotting.trace(results)   
-    plt.savefig(os.path.join(final_directory,'traceplot.png'))
-    plt.clf()
+    # flatten the chains, thin them by a factor of 10, and remove the burn-in (first half of the chain)
+    chain = sampler.get_chain(flat=True, discard=n_steps//2, thin=10)
 
-    # Corner plot
-    pc.plotting.corner(results)
+    # plot corner plot
+    fig, axes = zeus.cornerplot(chain, labels=p_labels, truth=p_ref);
     plt.savefig(os.path.join(final_directory,'cornerplot.png'))
     plt.clf()
 
-    # Run plot
-    pc.plotting.run(results)
-    plt.savefig(os.path.join(final_directory,'runplot.png'))
-    plt.clf()
+    # plot diagnostics
+    tau = cb0.estimates
+    R = cb1.estimates
+    N = np.arange(len(tau)) * 100
+    plt.figure(figsize=(12,6))
+    plt.subplot(121)
+    plt.plot(N, tau, lw=2.5)
+    plt.title('Integrated Autocorrelation Time', fontsize=14)
+    plt.xlabel('Iterations', fontsize=14)
+    plt.ylabel(r'$\tau$', fontsize=14)
+    plt.subplot(122)
+    plt.plot(N, R, lw=2.5)
+    plt.title('Split-R Gelman-Rubin Statistic', fontsize=14)
+    plt.xlabel('Iterations', fontsize=14)
+    plt.ylabel(r'$R$', fontsize=14)
+    plt.tight_layout()
+    plt.savefig(os.path.join(final_directory,'diagnostics.png'))
 
-    np.savetxt(os.path.join(final_directory,'samples.csv'),results['samples'],delimiter=',')
-    np.savetxt(os.path.join(final_directory,'loglikelihood.csv'),results['loglikelihood'],delimiter=',')
+    # save data
+    np.savetxt(os.path.join(final_directory,'samples.csv'),chain,delimiter=',')
 
 

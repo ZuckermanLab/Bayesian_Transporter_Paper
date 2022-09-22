@@ -10,6 +10,7 @@ import os
 import json
 import argparse
 import multiprocess as mp
+import sys
 
 #mp.set_start_method('fork')
 import os
@@ -37,29 +38,39 @@ def calc_norm_log_like(mu,sigma,X):
 def calc_log_like(K,y_obs,m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
-    #m = te.loada(ms)
+
+    H_out_list = [0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
-    m.resetToOrigin()
-    m.H_out = 5e-7
-    m.integrator.absolute_tolerance = 1e-18
-    m.integrator.relative_tolerance = 1e-12
+    y_list = []  # empty list to store flux from different experiments
+    sigma = 10**K[11]  # noise standard deviation 
 
-    # update tellurium model parameter values (rate constants)
-    for i, idx in enumerate(idx_list):
-        setattr(m, f'k{i+1}_f', 10**K[idx])
-        setattr(m, f'k{i+1}_r', 10**K[idx+1])
+    for i in range(len(H_out_list)):
+        #m = te.loada(ms)
+        m.resetToOrigin()
+        m.H_out = H_out_list[i]
+        m.integrator.absolute_tolerance = 1e-18
+        m.integrator.relative_tolerance = 1e-12
 
-    # last rate constant (k6_r) has cycle constraint
-    m.k6_f = 10**K[10]
-    m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+        # update tellurium model parameter values (rate constants)
+        for i, idx in enumerate(idx_list):
+            setattr(m, f'k{i+1}_f', 10**K[idx])
+            setattr(m, f'k{i+1}_r', 10**K[idx+1])
 
-    try:
-        D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
-        y_tmp = D_tmp['rxn4'][1:]  # remove first point
-        sigma = 10**K[11]
-        log_like_tmp = calc_norm_log_like(y_tmp,sigma,y_obs)
-    except:
-        log_like_tmp = -np.inf  # if there is an issue calculating the flux --> no probability
+        # last rate constant (k6_r) has cycle constraint
+        m.k6_f = 10**K[10]
+        m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+
+        try:
+            D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
+            y_tmp = D_tmp['rxn4'][1:]  # remove first point
+        except:
+            log_like_tmp = -np.inf  # if there is an issue calculating the flux --> no probability
+            return log_like_tmp
+        
+        y_list.append(y_tmp)
+
+    y_sim = np.hstack(y_list)
+    log_like_tmp = calc_norm_log_like(y_sim,sigma,y_obs)
     return log_like_tmp
 
 
@@ -119,9 +130,45 @@ def parse_p_info(p_info, near_global_min=True):
     return p_ref, p_labels, np.array(p_bounds)
 
 
+def synthesize_data(K,m):
+    '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
+    '''
+
+    H_out_list = [0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
+    y_list = []  # empty list to store flux from different experiments
+    sigma = 10**K[11]  # noise standard deviation 
+
+    for i in range(len(H_out_list)):
+        #m = te.loada(ms)
+        m.resetToOrigin()
+        m.H_out = H_out_list[i]
+        m.integrator.absolute_tolerance = 1e-18
+        m.integrator.relative_tolerance = 1e-12
+
+        # update tellurium model parameter values (rate constants)
+        for i, idx in enumerate(idx_list):
+            setattr(m, f'k{i+1}_f', 10**K[idx])
+            setattr(m, f'k{i+1}_r', 10**K[idx+1])
+
+        # last rate constant (k6_r) has cycle constraint
+        m.k6_f = 10**K[10]
+        m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+
+        try:
+            D_tmp = m.simulate(0, 5, 125, selections=['time', 'rxn4'])
+            y_tmp = D_tmp['rxn4'][1:]  # remove first point
+        except:
+            print('error simulating model')
+            sys.exit(1) 
+        y_list.append(y_tmp)
+    y_true = np.hstack(y_list)
+    y_synth = y_true + np.random.normal(0, sigma, np.size(y_true))
+    return y_true, y_synth 
+
+
 def wrapper(arg_list):
     '''wrapper function to make and run ensemble sampler object in parallel'''
-
 
     log_prob = arg_list[0]
     log_prob_args = arg_list[1]
@@ -138,12 +185,8 @@ def wrapper(arg_list):
     backend = emcee.backends.HDFBackend(backend_fname, name=backend_rname)
     #sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args, backend=backend)   
     sampler = emcee.EnsembleSampler(n_walkers, n_dim, log_prob, args=log_prob_args)   
-
     state = sampler.run_mcmc(p_0,n_steps, thin_by=1)
     return (sampler, state)
-
-
-
 
 
 if __name__ == "__main__":
@@ -157,11 +200,12 @@ if __name__ == "__main__":
     ### input arguments
     model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_12D_model.txt"
     #obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc_50s.csv"
-    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_a_trunc.csv"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_1exp_B_trunc_125s.csv"
     parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/12D_transporter_w_full_priors.json"
     parallel = False
     n_cpus = 1
     
+    n_exp = 2
     n_walkers = 1000
     n_dim = 12
     n_shuffles = 1
@@ -187,9 +231,25 @@ if __name__ == "__main__":
     p_ref, p_labels, p_bounds = parse_p_info(p_info, near_global_min=near_global_min)
     _, _, p_bounds2 = parse_p_info(p_info, near_global_min=False)  # for plot (useful if starting near global max)
 
+
+    # ### generate synthetic data
+    # y_true, y_obs = synthesize_data(p_ref, te.loadAntimonyModel(antimony_string_SS))
+    # np.savetxt('synth_data_1exp_B_trunc_125s.csv', y_obs, delimiter=',')
+    # plt.plot(y_true, label='true')
+    # plt.plot(y_obs, 'o', alpha=0.75, label='true+noise')
+    # plt.title('ion influx trace')
+    # plt.ylabel('influx')
+    # plt.xlabel('t')
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.savefig('1expB_trace_2.png')
+
     ### set log likelihood arguments and initial parameter sets
     y_obs= np.genfromtxt(obs_data_file)
     p_0 = get_p0(p_bounds, n_walkers) 
+    log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
+    print(f"log likelihood reference: {log_like_ref}")
+    #assert(1==0)
     
     ### write to log file
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
@@ -200,6 +260,7 @@ if __name__ == "__main__":
         f.write(f"parallel: {parallel}\n")
         f.write(f"n cpu: {n_cpus}\n")
         f.write(f"seed: {seed}\n")
+        f.write(f"n experiments: {n_exp}\n")
         f.write(f"n walkers: {n_walkers}\n")
         f.write(f"n dim: {n_dim}\n")
         f.write(f"n additional samples: {additional_samples}\n")
@@ -211,7 +272,7 @@ if __name__ == "__main__":
         f.write(f"parameter labels: {p_labels}\n")
         f.write(f"parameter boundaries: {p_bounds}\n")
         f.write(f"initial parameters p_0[0]: {p_0[0]}\n")
-
+        f.write(f"log likelihood reference]: {log_like_ref}\n")
 
     # Number of particles to use
     n_particles = n_walkers
