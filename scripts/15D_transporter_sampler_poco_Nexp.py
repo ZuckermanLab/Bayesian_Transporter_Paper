@@ -39,7 +39,7 @@ def calc_log_like(K,y_obs,m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
 
-    H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    H_out_list = [5e-7, 0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
     k_dict = {
         "1":[0,1],
@@ -89,8 +89,8 @@ def calc_log_prior(p):
 
     # fix this later - should connect w/ parameter info data file
     b = 0  # shift parameter priors by 2 (orders of magnitude) to be non-centered
-    lb = np.array([6, -1, -2, -2, 3, -1, -1, 6, -2, -2, -1]) + b  # log10 rate constant prior lower bound + shift
-    ub = np.array([12, 5, 4, 4, 9, 5, 5, 12, 4, 4, 5]) + b  # log10 rate constant prior upper bound + shift
+    lb = np.array([6, -1, -2, -2, 3, -1, -1, 6, -2, -2, -1, 6, -1, 3]) + b  # log10 rate constant prior lower bound + shift
+    ub = np.array([12, 5, 4, 4, 9, 5, 5, 12, 4, 4, 5, 12, 5, 9]) + b  # log10 rate constant prior upper bound + shift
     sigma_lb = np.log10(5e-14)  # log10 noise sigma prior lower bound 
     sigma_ub = np.log10(5e-13)  # log10 noise sigma prior upper bound 
     if ((lb < p[:-1]) & (p[:-1] < ub)).all() and (sigma_lb<p[-1]<sigma_ub):
@@ -142,7 +142,7 @@ def synthesize_data(K,m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
 
-    H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    H_out_list = [5e-7,0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
     k_dict = {
         "1":[0,1],
@@ -217,14 +217,14 @@ if __name__ == "__main__":
 
     ### input arguments
     model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
-    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s.csv"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_2expAB_125s.csv"
     parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
     parallel = False
     n_cpus = 1
     
     n_exp = 1
     n_walkers = 1000
-    n_dim = 12
+    n_dim = 15
     n_shuffles = 1
     near_global_min = False
     additional_samples = int(1e4)
@@ -250,9 +250,8 @@ if __name__ == "__main__":
 
   
     ### generate synthetic data
-
     # y_true, y_obs = synthesize_data(p_ref, te.loadAntimonyModel(antimony_string_SS))
-    # np.savetxt('synth_data_15D_c2_1expA_125s.csv', y_obs, delimiter=',')
+    # np.savetxt('synth_data_15D_c12_2expAB_125s.csv', y_obs, delimiter=',')
     # plt.plot(y_true, label='true')
     # plt.plot(y_obs, 'o', alpha=0.75, label='true+noise')
     # plt.title('ion influx trace')
@@ -260,7 +259,7 @@ if __name__ == "__main__":
     # plt.xlabel('t')
     # plt.legend()
     # plt.tight_layout()
-    # plt.savefig('15D_c2_1expA_125s_trace.png')
+    # plt.savefig('15D_c12_2expAB_125s_trace.png')
     # assert(1==0)
 
     ### set log likelihood arguments and initial parameter sets
@@ -268,7 +267,7 @@ if __name__ == "__main__":
     p_0 = get_p0(p_bounds, n_walkers) 
     log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
     print(f"log likelihood reference: {log_like_ref}")
-    
+ 
     
     ### write to log file
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
