@@ -161,6 +161,9 @@ if __name__ == "__main__":
     parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/12D_transporter_w_full_priors.json"
     parallel = False
     n_cpus = 1
+
+    resume_run = False
+    resume_run_file = '/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/run_poco_d20220928_170148_pFalse_nw1000_nd15_ngmFalse_as10000_g0.5_ess0.999_r0/pmc_610.state'
     
     n_walkers = 1000
     n_dim = 12
@@ -196,7 +199,9 @@ if __name__ == "__main__":
         f.write(f"date: {date_string}\n")
         f.write(f"model file: {model_file}\n")
         f.write(f"parameter file: {parameter_file}\n")
-        f.write(f"data file: {obs_data_file}\n")
+        f.write(f"resume run: {resume_run}\n")
+        f.write(f"resume run file: {resume_run_file}\n")
+        f.write(f"data file: {obs_data_file}\n")      
         f.write(f"parallel: {parallel}\n")
         f.write(f"n cpu: {n_cpus}\n")
         f.write(f"seed: {seed}\n")
@@ -221,6 +226,7 @@ if __name__ == "__main__":
 
     
     if parallel==True:
+        assert NotImplementedError
         with mp.Pool(n_cpus) as pool:
 
             sampler = pc.Sampler(
@@ -264,11 +270,17 @@ if __name__ == "__main__":
             output_dir=final_directory,
         )
 
-        # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
-        prior_samples = p_0
+
 
         # Start sampling
-        sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+        if resume_run == True:
+            print(f'resuming run from state file: {resume_run_file}')
+            sampler.run(resume_state_path=resume_run_file, ess=ess, save_every=save_every, gamma=gamma,)
+        else:
+            print(f'generating initial samples from prior and starting sampler')        
+            prior_samples = p_0  # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
+            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+
 
         # We can add more samples at the end
         sampler.add_samples(additional_samples)
@@ -301,5 +313,5 @@ if __name__ == "__main__":
 
     np.savetxt(os.path.join(final_directory,'samples.csv'),results['samples'],delimiter=',')
     np.savetxt(os.path.join(final_directory,'loglikelihood.csv'),results['loglikelihood'],delimiter=',')
-
+    print('sampling run complete')
 

@@ -11,10 +11,11 @@ import json
 import argparse
 import multiprocess as mp
 import sys
+import copy
 
 #mp.set_start_method('fork')
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+#os.environ['KMP_DUPLICATE_LIB_OK']='True'
 #os.environ["OMP_NUM_THREADS"] = "1"
 import pocomc as pc
 
@@ -35,11 +36,11 @@ def calc_norm_log_like(mu,sigma,X):
     return log_likelihood
 
 
-def calc_log_like(K,y_obs,m):
+def calc_log_like(K,y_obs,txt):#m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
-
-    H_out_list = [5e-7, 0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    m = te.loada(txt) #testing
+    H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
     k_dict = {
         "1":[0,1],
@@ -142,7 +143,7 @@ def synthesize_data(K,m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
 
-    H_out_list = [5e-7,0.2e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
     k_dict = {
         "1":[0,1],
@@ -216,11 +217,14 @@ if __name__ == "__main__":
     print(f'using seed: {seed}')
 
     ### input arguments
-    model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
-    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_2expAB_125s.csv"
-    parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
+    model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    obs_data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
+    parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
     parallel = False
     n_cpus = 1
+    
+    resume_run = False
+    resume_run_file = '/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/run_poco_d20220928_170155_pFalse_nw1000_nd15_ngmFalse_as10000_g0.5_ess0.999_r10/pmc_150.state'
     
     n_exp = 1
     n_walkers = 1000
@@ -249,9 +253,9 @@ if __name__ == "__main__":
     _, _, p_bounds2 = parse_p_info(p_info, near_global_min=False)  # for plot (useful if starting near global max)
 
   
-    ### generate synthetic data
+    # # generate synthetic data
     # y_true, y_obs = synthesize_data(p_ref, te.loadAntimonyModel(antimony_string_SS))
-    # np.savetxt('synth_data_15D_c12_2expAB_125s.csv', y_obs, delimiter=',')
+    # np.savetxt('synth_data_15D_c1_1expA_125s_v3.csv', y_obs, delimiter=',')
     # plt.plot(y_true, label='true')
     # plt.plot(y_obs, 'o', alpha=0.75, label='true+noise')
     # plt.title('ion influx trace')
@@ -259,15 +263,16 @@ if __name__ == "__main__":
     # plt.xlabel('t')
     # plt.legend()
     # plt.tight_layout()
-    # plt.savefig('15D_c12_2expAB_125s_trace.png')
+    # plt.savefig('15D_c1_1expA_125s_trace_v2.png')
     # assert(1==0)
 
     ### set log likelihood arguments and initial parameter sets
     y_obs= np.genfromtxt(obs_data_file)
     p_0 = get_p0(p_bounds, n_walkers) 
-    log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
+    #log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
+    log_like_ref = calc_log_like(p_ref,y_obs,antimony_string_SS)  # testing
     print(f"log likelihood reference: {log_like_ref}")
- 
+    #assert(1==0)
     
     ### write to log file
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
@@ -275,6 +280,8 @@ if __name__ == "__main__":
         f.write(f"model file: {model_file}\n")
         f.write(f"parameter file: {parameter_file}\n")
         f.write(f"data file: {obs_data_file}\n")
+        f.write(f"resume run: {resume_run}\n")
+        f.write(f"resume run file: {resume_run_file}\n")
         f.write(f"parallel: {parallel}\n")
         f.write(f"n cpu: {n_cpus}\n")
         f.write(f"seed: {seed}\n")
@@ -300,6 +307,7 @@ if __name__ == "__main__":
 
     
     if parallel==True:
+       
         with mp.Pool(n_cpus) as pool:
 
             sampler = pc.Sampler(
@@ -321,13 +329,20 @@ if __name__ == "__main__":
             prior_samples = p_0
 
             # Start sampling
-            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+            if resume_run == True:
+                print(f'resuming run from state file: {resume_run_file}')
+                sampler.run(resume_state_path=resume_run_file, ess=ess, save_every=save_every, gamma=gamma,)
+            else:
+                print(f'generating initial samples from prior and starting sampler')        
+                prior_samples = p_0  # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
+                sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+
 
             # We can add more samples at the end
             sampler.add_samples(additional_samples)
 
             # Get results
-            results = sampler.results
+            results = sampler.results  
     else:
         sampler = pc.Sampler(
             n_walkers,
@@ -347,7 +362,14 @@ if __name__ == "__main__":
         prior_samples = p_0
 
         # Start sampling
-        sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+        if resume_run == True:
+            print(f'resuming run from state file: {resume_run_file}')
+            sampler.run(resume_state_path=resume_run_file, ess=ess, save_every=save_every, gamma=gamma,)
+        else:
+            print(f'generating initial samples from prior and starting sampler')        
+            prior_samples = p_0  # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
+            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
+
 
         # We can add more samples at the end
         sampler.add_samples(additional_samples)
@@ -380,5 +402,5 @@ if __name__ == "__main__":
 
     np.savetxt(os.path.join(final_directory,'samples.csv'),results['samples'],delimiter=',')
     np.savetxt(os.path.join(final_directory,'loglikelihood.csv'),results['loglikelihood'],delimiter=',')
-
+    print('sampling run complete')
 
