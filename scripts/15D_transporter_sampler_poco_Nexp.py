@@ -269,8 +269,8 @@ if __name__ == "__main__":
     ### set log likelihood arguments and initial parameter sets
     y_obs= np.genfromtxt(obs_data_file)
     p_0 = get_p0(p_bounds, n_walkers) 
-    #log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
-    log_like_ref = calc_log_like(p_ref,y_obs,antimony_string_SS)  # testing
+    log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
+    #log_like_ref = calc_log_like(p_ref,y_obs,antimony_string_SS)  # testing
     print(f"log likelihood reference: {log_like_ref}")
     #assert(1==0)
     
