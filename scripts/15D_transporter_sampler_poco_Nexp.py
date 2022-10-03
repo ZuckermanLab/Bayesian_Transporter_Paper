@@ -9,7 +9,7 @@ from datetime import datetime
 import os
 import json
 import argparse
-import multiprocess as mp
+import multiprocessing as mp
 import sys
 import copy
 
