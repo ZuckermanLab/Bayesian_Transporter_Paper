@@ -15,7 +15,7 @@ import copy
 
 #mp.set_start_method('fork')
 import os
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 #os.environ["OMP_NUM_THREADS"] = "1"
 import pocomc as pc
 
@@ -36,10 +36,10 @@ def calc_norm_log_like(mu,sigma,X):
     return log_likelihood
 
 
-def calc_log_like(K,y_obs,txt):#m):
+def calc_log_like(K,y_obs,m):#m):
     '''calculates the log likelihood of a transporter tellurium ODE model m, given data y_obs, and parameters K
     '''
-    m = te.loada(txt) #testing
+    
     H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
     #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
     k_dict = {
@@ -217,9 +217,13 @@ if __name__ == "__main__":
     print(f'using seed: {seed}')
 
     ### input arguments
-    model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
-    obs_data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
-    parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
+    #model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    #obs_data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
+    #parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
+    model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
+    parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
+    
     parallel = False
     n_cpus = 1
     
