@@ -238,7 +238,7 @@ if __name__ == "__main__":
     additional_samples = int(1e4)
     save_every = 10
     gamma = 0.5
-    ess = 0.99
+    ess = 0.995
     
     np.random.seed(seed)
 
