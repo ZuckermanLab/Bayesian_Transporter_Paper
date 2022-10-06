@@ -223,7 +223,7 @@ if __name__ == "__main__":
     log_like_ref = calc_log_like(p_ref,y_obs,te.loada(model_string))
     print(f"log likelihood reference: {log_like_ref}")
 
-    actor_count = 2  
+    actor_count = n_cpus  
     simulators = [SimulatorActor.remote(model_string, y_obs) for _ in range(actor_count)]
 
     f = lambda a, b : a.logl.remote(b)
@@ -266,5 +266,6 @@ if __name__ == "__main__":
     sampler.add_samples(additional_samples)
     
     results = sampler.results
+    print(results)
     pc.plotting.corner(results)
     plt.savefig('test.png')
