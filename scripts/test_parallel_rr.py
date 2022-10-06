@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 #import os
 #os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import pocomc as pc 
-
+n_cpus = 2
 
 def calc_norm_log_like_wrapper(mu,sigma,X):
     # if contains NaN --> p = 0 --> log p = -inf
@@ -120,7 +120,7 @@ def calc_log_prior(p):
         return -1e50#-np.inf
 
 
-@ray.remote
+@ray.remote(num_cpus=n_cpus)
 class SimulatorActor(object):
     """Ray actor to execute simulations."""
 
@@ -209,7 +209,6 @@ if __name__ == "__main__":
     rr_model = te.loada(model_string)
 
     ### sampling arguments
-    n_cpus = 2
     n_walkers = 10
     n_dim = 15
     additional_samples = int(1e2)
