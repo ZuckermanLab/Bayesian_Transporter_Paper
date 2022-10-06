@@ -192,10 +192,14 @@ if __name__ == "__main__":
     print(f'using seed: {seed}')
 
     ### input files
-    dir = Path.cwd()  # set your file path directory
-    model_file = dir / "antiporter_15D_model.txt"
-    data_file = dir / "synth_data_15D_c1_1expA_125s_v3.csv"
-    parameter_file = dir / "15D_transporter_c1_w_full_priors.json"
+    # dir = Path.cwd()  # set your file path directory
+    # model_file = dir / "antiporter_15D_model.txt"
+    # data_file = dir / "synth_data_15D_c1_1expA_125s_v3.csv"
+    # parameter_file = dir / "15D_transporter_c1_w_full_priors.json"
+
+    model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
+    parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
     with open(model_file, "r") as f:
         model_string = f.read()
     with open (parameter_file, 'rb') as fp:
