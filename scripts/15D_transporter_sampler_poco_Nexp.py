@@ -15,7 +15,7 @@ import copy
 
 #mp.set_start_method('fork')
 import os
-os.environ['KMP_DUPLICATE_LIB_OK']='True'
+#os.environ['KMP_DUPLICATE_LIB_OK']='True'
 #os.environ["OMP_NUM_THREADS"] = "1"
 import pocomc as pc
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
     additional_samples = int(1e4)
     save_every = 10
     gamma = 0.5
-    ess = 0.995
+    ess = 0.999
     
     np.random.seed(seed)
 
@@ -372,8 +372,7 @@ if __name__ == "__main__":
         else:
             print(f'generating initial samples from prior and starting sampler')        
             prior_samples = p_0  # Initialise particles' positions using samples from the prior (this is very important, other initialisation will not work).
-            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,)
-
+            sampler.run(prior_samples, ess=ess, save_every=save_every, gamma=gamma,progress=False)
 
         # We can add more samples at the end
         sampler.add_samples(additional_samples)
@@ -381,7 +380,6 @@ if __name__ == "__main__":
         # Get results
         results = sampler.results  
     
-
     ### write wall clock time to file
     wallclock = time.time() -t0
     with open(os.path.join(final_directory, f'{out_fname}_log.txt'), "a") as f:
