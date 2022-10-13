@@ -6,8 +6,8 @@ import ray
 from ray.util import ActorPool
 import matplotlib.pyplot as plt
 
-#import os
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import pocomc as pc 
 n_cpus = 2
 

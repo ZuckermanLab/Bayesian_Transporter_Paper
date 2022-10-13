@@ -15,7 +15,7 @@ import copy
 
 #mp.set_start_method('fork')
 import os
-#os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 #os.environ["OMP_NUM_THREADS"] = "1"
 import pocomc as pc
 
@@ -208,6 +208,44 @@ def wrapper(arg_list):
     return (sampler, state)
 
 
+def run_cycle_tests(K,m):
+    H_out_list = [5e-7]  #  experiments w/ varying external pH conditions [5e-7,0.2e-7]
+    #idx_list = [0,2,4,6,8]  # index of rate pairs used to set attribute, last rate omitted - fix this later 
+    k_dict = {
+        "1":[0,1],
+        "2":[2,3],
+        "3":[4,5],
+        "4":[6,7],
+        "5":[8,9],
+        "8":[12,13]
+    }
+    y_list = []  # empty list to store flux from different experiments
+    sigma = 10**K[-1]  # noise standard deviation is last term
+
+    for i in range(len(H_out_list)):
+        #m = te.loada(ms)
+        m.resetToOrigin()
+        m.H_out = H_out_list[i]  # plot values
+        m.integrator.absolute_tolerance = 1e-18
+        m.integrator.relative_tolerance = 1e-12
+
+        # update tellurium model parameter values (rate constants)
+        for key, value in k_dict.items():
+            setattr(m, f'k{key}_f', 10**K[value[0]])
+            setattr(m, f'k{key}_r', 10**K[value[1]])
+
+        # k6 and k7 have cycle constraints
+        m.k6_f = 10**K[10]
+        m.k6_r = (m.k1_f*m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k6_f)/(m.k1_r*m.k2_r*m.k3_r*m.k4_r*m.k5_r)
+        m.k7_f = 10**K[11]
+        m.k7_r = (m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k7_f*m.k8_f)/(m.k2_r*m.k3_r*m.k4_r*m.k5_r*m.k8_r)
+
+        cc_test1 = (m.k2_f*m.k3_f*m.k4_f*m.k5_f*m.k7_f*m.k8_f)/(m.k2_r*m.k3_r*m.k4_r*m.k5_r*m.k8_r) # testing cycle 1 v1
+        cc_test2 = (m.k6_r*m.k7_f*m.k8_f*m.k1_r)/(m.k6_f*m.k1_f*m.k8_r) # testing cycle 2 constraint v2
+        assert(np.isclose(cc_test1,cc_test2))
+        print(f'cycle constraint definition test passed: v1:{cc_test1} ~ v2:{cc_test2}')
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -217,12 +255,12 @@ if __name__ == "__main__":
     print(f'using seed: {seed}')
 
     ### input arguments
-    model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
-    obs_data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
-    parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
-    # model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
-    # obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c1_1expA_125s_v3.csv"
-    # parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/15D_transporter_c1_w_full_priors.json"
+    # model_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    # obs_data_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/synthetic_data/synth_data_15D_c2_1expA_125s.csv"
+    # parameter_file = "/home/groups/ZuckermanLab/georgeau/pocoMC_sampler/Bayesian_Transporter/transporter_model/15D_transporter_c2_w_full_priors.json"
+    model_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/antiporter_15D_model.txt"
+    obs_data_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/synthetic_data/synth_data_15D_c12_1expA_125s.csv"
+    parameter_file = "/Users/georgeau/Desktop/GitHub/Bayesian_Transporter/transporter_model/15D_transporter_c12_w_full_priors.json"
     
     parallel = False
     n_cpus = 1
@@ -257,24 +295,27 @@ if __name__ == "__main__":
     _, _, p_bounds2 = parse_p_info(p_info, near_global_min=False)  # for plot (useful if starting near global max)
 
   
-    # # generate synthetic data
-    # y_true, y_obs = synthesize_data(p_ref, te.loadAntimonyModel(antimony_string_SS))
-    # np.savetxt('synth_data_15D_c1_1expA_125s_v3.csv', y_obs, delimiter=',')
-    # plt.plot(y_true, label='true')
-    # plt.plot(y_obs, 'o', alpha=0.75, label='true+noise')
-    # plt.title('ion influx trace')
-    # plt.ylabel('influx')
-    # plt.xlabel('t')
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.savefig('15D_c1_1expA_125s_trace_v2.png')
-    # assert(1==0)
+    # generate synthetic data
+    y_true, y_obs = synthesize_data(p_ref, te.loadAntimonyModel(antimony_string_SS))
+    #np.savetxt('synth_data_15D_c1_1expA_125s_v4_test.csv', y_obs, delimiter=',')
+    plt.plot(y_true, label='true')
+    plt.plot(y_obs, 'o', alpha=0.75, label='true+noise')
+    plt.title('ion influx trace')
+    plt.ylabel('influx')
+    plt.xlabel('t')
+    plt.legend()
+    plt.tight_layout()
+    #plt.savefig('15D_c1_1expA_125s_trace_v4_test.png')
+    log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
+    print(log_like_ref)
+    run_cycle_tests(p_ref,te.loada(antimony_string_SS))
+    assert(1==0)
 
     ### set log likelihood arguments and initial parameter sets
     y_obs= np.genfromtxt(obs_data_file)
     p_0 = get_p0(p_bounds, n_walkers) 
     log_like_ref = calc_log_like(p_ref,y_obs,te.loada(antimony_string_SS))
-    #log_like_ref = calc_log_like(p_ref,y_obs,antimony_string_SS)  # testing
+    run_cycle_tests(p_ref,te.loada(antimony_string_SS))
     print(f"log likelihood reference: {log_like_ref}")
     #assert(1==0)
     

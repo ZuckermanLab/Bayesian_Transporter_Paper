@@ -82,6 +82,7 @@ k8_r = 1e7;
 const vol;
 const k1_f, k1_r, k2_f, k2_r, k3_f, k3_r;
 const k4_f, k4_r, k5_f, k5_r, k6_f, k6_r;
+const k7_f, k7_r, k8_f, k8_r;
 
 
 // Unit definitions:
