@@ -10,6 +10,7 @@ species IF_Sb in vol, OF_Sb in vol;
 species H_in in vol, S_in in vol;
 species $H_out in vol, $S_out in vol;
 species OF_Hb_Sb in vol;
+species IF in vol;
 
 // Reactions:
 rxn1: OF + $H_out -> OF_Hb; vol*(k1_f*OF*H_out - k1_r*OF_Hb);
@@ -22,21 +23,34 @@ rxn6: OF_Sb -> OF + $S_out; vol*(k6_f*OF_Sb - k6_r*OF*S_out);
 rxn7: OF_Sb + $H_out -> OF_Hb_Sb; vol*(k7_f*OF_Sb*H_out - k7_r*OF_Hb_Sb);
 rxn8: OF_Hb_Sb -> OF_Hb + $S_out; vol*(k8_f*OF_Hb_Sb - k8_r*OF_Hb*S_out);
 
+rxn9: IF + S_in -> IF_Sb; vol*(k9_f*IF*S_in - k9_r*IF_Sb);
+rxn10: IF_Hb -> IF + H_in; vol*(k10_f*IF_Hb - k10_r*IF*H_in);
+
+
+
+// Events:
+//E1: at (time >= 2.5): H_out = 1e-7, S_out = 1e-3;
 
 // Species initializations:
-H_out = 1e-7;
-H_in = 1e-7;
-S_out = 1e-3;
-S_in = 1e-3;
 
-OF = 1.7e-7;
-OF_Hb = 0;
-OF_Sb = 0;
-OF_Hb_Sb = 0;
 
-IF_Hb = 0;
-IF_Sb = 0;
-IF_Hb_Sb = 0;
+// before equilibration
+H_out = 1e-07;
+H_in = 1e-07;
+S_out = 1e-03;
+S_in = 1e-03;
+
+
+OF = 2.833e-08;
+OF_Hb = 2.833e-08;
+OF_Sb = 2.125e-08;
+OF_Hb_Sb = 2.833e-08;
+
+IF = 2.833e-08
+IF_Hb = 2.833e-08;
+IF_Sb = 2.125e-08;
+IF_Hb_Sb = 2.833e-08;
+
 
 H_out has substance_per_volume;
 H_in has substance_per_volume;
@@ -48,6 +62,7 @@ OF_Hb has substance_per_volume;
 OF_Sb has substance_per_volume;
 OF_Hb_Sb has substance_per_volume;
 
+IF has substance_per_volume;
 IF_Hb has substance_per_volume;
 IF_Sb has substance_per_volume;
 IF_Hb_Sb has substance_per_volume;
@@ -68,27 +83,25 @@ k4_f = 1e3;
 k4_r = 1e10;
 k5_f = 1e2;
 k5_r = 1e2;
-
-// cycle constraint for cycle 1
 k6_f = 1e3;
-k6_r := (k1_f*k2_f*k3_f*k4_f*k5_f*k6_f)/(k1_r*k2_r*k3_r*k4_r*k5_r);  // 1e7;
+k6_r = 1e7;
 
-// cycle constraint for cycle 2
 k7_f = 1e10;
-k7_r := (k2_f*k3_f*k4_f*k5_f*k7_f*k8_f)/(k2_r*k3_r*k4_r*k5_r*k8_r); // 1e3;
-
+k7_r = 1e3;
 k8_f = 1e3;
 k8_r = 1e7;
+
+k9_f = 1e7;
+k9_r = 1e3;
+k10_f = 1e3;
+k10_r = 1e10;
 
 // Other declarations:
 const vol;
 const k1_f, k1_r, k2_f, k2_r, k3_f, k3_r;
 const k4_f, k4_r, k5_f, k5_r, k6_f, k6_r;
 const k7_f, k7_r, k8_f, k8_r;
-
-
-// output
-current := rxn4;
+const k9_f, k9_r, k10_f, k10_r; 
 
 // Unit definitions:
 unit substance_per_volume = mole / litre;
