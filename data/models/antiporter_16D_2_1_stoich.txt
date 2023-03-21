@@ -1,0 +1,144 @@
+  
+// Created by libAntimony v2.12.0
+model transporter_full()
+
+// model parameters:
+const elem_charge = 1.602e-19;
+const N_av = 6.022e23;
+const n_liposomes = 1e11;
+const n_transporters = 1e13;
+
+const liposome_volume = 5.24e-19; # 4/3*PI*(50 nm)^3 in L
+const liposome_membrane_volume = 1.42e-19; # 4/3*PI*(50 nm)^3 - 4/3*PI*(45 nm)^3 in L
+const liposome_external_volume = 2*liposome_volume;
+
+const total_internal_volume = liposome_volume*n_liposomes;
+const total_external_volume = 2*total_internal_volume;
+const total_membrane_volume = liposome_membrane_volume*n_liposomes;
+
+
+// Compartments and Species:
+compartment v_m, v_out, v_in;
+v_m has volume; v_out has volume; v_in has volume;
+
+v_m = total_membrane_volume;
+v_out = total_external_volume;
+v_in = total_internal_volume;
+
+species OF in v_m, OF_Hb in v_m;
+species IF_Hb in v_m, IF_Hb_Sb in v_m;
+species IF_Sb in v_m, OF_Sb in v_m;
+species OF_Hb_Hb in v_m, IF_Hb_Hb in v_m;
+
+species H_in in v_in, S_in in v_in;
+species $H_out in v_out, $S_out in v_out;
+
+
+// Reactions:
+rxn1: OF + $H_out -> OF_Hb; v_out*(k1_f*OF*H_out - k1_r*OF_Hb);
+rxn2: OF_Hb + $H_out -> OF_Hb_Hb; v_out*(k2_f*OF_Hb*H_out - k2_r*OF_Hb_Hb);
+rxn3: OF_Hb_Hb -> IF_Hb_Hb; v_m*(k3_f*OF_Hb_Hb - k3_r*IF_Hb_Hb);
+rxn4: IF_Hb_Hb -> IF_Hb + H_in; v_in*(k4_f*IF_Hb_Hb - k4_r*IF_Hb*H_in);
+rxn5: IF_Hb + S_in -> IF_Hb_Sb; v_in*(k5_f*IF_Hb*S_in - k5_r*IF_Hb_Sb);
+rxn6: IF_Hb_Sb -> IF_Sb + H_in; v_in*(k6_f*IF_Hb_Sb - k6_r*IF_Sb*H_in);
+rxn7: IF_Sb -> OF_Sb; v_m*(k7_f*IF_Sb - k7_r*OF_Sb);
+rxn8: OF_Sb -> OF + $S_out; v_out*(k8_f*OF_Sb - k8_r*OF*S_out);
+
+
+// Species initializations, in moles/L:
+moles_transporters := (n_transporters)/(N_av);
+molar_concentration_transporters := moles_transporters/total_membrane_volume;
+
+H_out = 1e-7;
+H_in = 1e-7;
+S_out = 1e-3;
+S_in = 1e-3;
+
+OF = molar_concentration_transporters; # (1.7e-11 moles)/(1.42e-19 L * 1e11) ~1e-3 M
+OF_Hb = 0;
+OF_Sb = 0;
+
+IF_Hb = 0;
+IF_Sb = 0;
+IF_Hb_Sb = 0;
+
+OF_Hb_Hb = 0;
+IF_Hb_Hb = 0;
+
+H_out has substance_per_volume;
+H_in has substance_per_volume;
+S_out has substance_per_volume;
+S_in has substance_per_volume;
+
+OF has substance_per_volume;
+OF_Hb has substance_per_volume;
+OF_Sb has substance_per_volume;
+
+IF_Hb has substance_per_volume;
+IF_Sb has substance_per_volume;
+IF_Hb_Sb has substance_per_volume;
+
+OF_Hb_Hb has substance_per_volume;
+IF_Hb_Hb has substance_per_volume;
+
+
+
+// Rate constant initializations:
+k1_f = 1e10;  // H binding
+k1_r = 1e3;  // H unbinding
+
+k2_f = 1e10;  // H binding
+k2_r = 1e3;  // H unbinding
+
+k3_f = 1e2;  // Conformational change
+k3_r = 1e2;  // Conformational change
+
+k4_f = 1e3;  // H unbinding
+k4_r = 1e10;  // H binding
+
+k5_f = 1e7;  // S binding
+k5_r = 1e3;  // S unbinding
+
+k6_f = 1e3;  // H unbinding
+k6_r = 1e10;  // H binding
+
+k7_f = 1e2;  // Conformational change
+k7_r = 1e2;  // Conformational change
+
+// cycle constraint for cycle 1
+k8_f = 1e3;  // S unbinding
+k8_r := (k1_f*k2_f*k3_f*k4_f*k5_f*k6_f*k7_f*k8_f)/(k1_r*k2_r*k3_r*k4_r*k5_r*k6_r*k7_r);  // S binding
+
+
+// Other declarations:
+const v_m, v_out, v_in;
+const k1_f, k1_r, k2_f, k2_r, k3_f, k3_r;
+const k4_f, k4_r, k5_f, k5_r, k6_f, k6_r;
+const k7_f, k7_r, k8_f, k8_r;
+
+
+// Events:
+const H_act = 1e-7;
+E1: at (time >= 1 && time < 2): H_out = H_act, S_out = 1e-3;
+E2: at (time >= 2): H_out = 1e-7, S_out = 1e-3;
+
+
+// output
+var current := (rxn4+rxn6)*N_av*elem_charge; 
+var transporter_amount := (OF + OF_Hb + OF_Sb + IF_Hb + IF_Sb + IF_Hb_Sb + OF_Hb_Hb + IF_Hb_Hb)*v_m; // in moles
+var H_conc_ratio := H_out/H_in;
+var S_conc_ratio := S_out/S_in;
+
+
+// Unit definitions:
+unit substance_per_volume = mole / litre;
+unit volume = litre;
+unit length = metre;
+unit area = metre^2;
+unit time_unit = second;
+unit substance = mole;
+unit extent = mole;
+
+// Display Names:
+time_unit is "time";
+end
