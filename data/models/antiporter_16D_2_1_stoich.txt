@@ -118,9 +118,9 @@ const k7_f, k7_r, k8_f, k8_r;
 
 
 // Events:
-const H_act = 1e-7;
-E1: at (time >= 1 && time < 2): H_out = H_act, S_out = 1e-3;
-E2: at (time >= 2): H_out = 1e-7, S_out = 1e-3;
+// const H_act = 5e-8;
+// E1: at (time >= 1 && time < 2): H_out = H_act, S_out = 1e-3;
+// E2: at (time >= 2): H_out = 1e-7, S_out = 1e-3;
 
 
 // output
