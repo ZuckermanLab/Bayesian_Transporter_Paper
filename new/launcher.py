@@ -144,13 +144,6 @@ if __name__ == '__main__':
     rr_model = te.loadSBMLModel(sbml_model_file)   # load SBML model as a roadrunner object
     y_obs = np.genfromtxt(observed_data_file, delimiter=',')  # load observed data file
     y_nom = get_y_nom(parameter_nominals, solver_arguments, ssme_experiment, rr_model)   # get predicted data using nominal values
-    
-    np.savetxt("y_nom_model1_exp1and2.csv", y_nom)
-    plt.plot(y_nom)
-    plt.savefig('y_nom.png')
-    plot_save_data(y_nom, y_obs, misc_dir)   # save observed vs nominal data plot 
-
-    assert(1==0)
 
     ##### RUN OPTIMIZER AND/OR MCMC SAMPLER #####
     
