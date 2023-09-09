@@ -87,7 +87,7 @@ def run_sampler(config_fname):
         p_ub = [d['bounds'][1] for d in config['bayesian_inference']['parameters']]
         p_bounds = list(zip(p_lb,p_ub))
         p_nom = [10**d['nominal'] for d in config['bayesian_inference']['parameters']]
-        k_nom = p_nom[:-6]  # extended model, last 5 parameters are nuisance parameters
+        k_nom = p_nom[:-5]  # extended model, last 5 parameters are nuisance parameters
         sigma_nom = p_nom[-1]
 
         # get assay initial conditions
@@ -128,7 +128,11 @@ def run_sampler(config_fname):
     plt.plot(y_obs, 'o', label='y_obs', alpha=0.3)
     plt.legend()
     plt.savefig(os.path.join(output_dir, 'net_ion_influx_trace_nom.png'))
-    log_like_nom = uf.log_like(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
+
+    if extended:
+        log_like_nom = uf.log_like_extended(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
+    else:
+        log_like_nom = uf.log_like(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
     logger.info(f"log_like_nom: {log_like_nom}")
 
     # set sampler parameters 

@@ -61,6 +61,7 @@ def run_optimizer(config_fname):
     mle_method = optimization_settings['method']
     seed = config['random_seed']
     np.random.seed(seed)
+    extended = config['bayesian_inference']['extended']
 
     # get parameter names, values, and boundaries
     k_names = config['solver_arguments']['rate_constant_names']
@@ -70,7 +71,11 @@ def run_optimizer(config_fname):
     p_ub = [d['bounds'][1] for d in config['bayesian_inference']['parameters']]
     p_bounds = list(zip(p_lb,p_ub))
     p_nom = [10**d['nominal'] for d in config['bayesian_inference']['parameters']]
-    k_nom = p_nom[:-1]
+
+    if extended:
+        k_nom = p_nom[:-5]
+    else:
+        k_nom = p_nom[:-1]
     sigma_nom = p_nom[-1]
 
     # get assay initial conditions
@@ -111,12 +116,15 @@ def run_optimizer(config_fname):
     plt.plot(y_obs, 'o', label='y_obs', alpha=0.3)
     plt.legend()
     plt.savefig(os.path.join(output_dir, 'net_ion_influx_trace_nom.png'))
-    log_like_nom = uf.log_like(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
+
+    if extended:
+        log_like_nom = uf.log_like_extended(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
+    else:
+        log_like_nom = uf.log_like(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
     logger.info(f"log_like_nom: {log_like_nom}")
 
     ##### Run MLE optimization #####
     tuning = config['optimization']['tuning']
-    extended = config['bayesian_inference']['extended']
     n_dim = len(p_names)
     logger.info(f"n_dim: {n_dim}")
     if extended:
