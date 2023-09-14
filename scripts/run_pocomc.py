@@ -138,7 +138,7 @@ def run_sampler(config_fname):
 
     if extended:
         log_like_nom = uf.log_like_extended(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
-    else extended:
+    else:
         log_like_nom = uf.log_like(log10_p_nom, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
     logger.info(f"log_like_nom: {log_like_nom}")
     
