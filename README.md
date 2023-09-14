@@ -2,11 +2,11 @@
 
 Supporting code for Bayesian Transporter research - still under development. 
 
-### Todo:
-- update installation requirements and getting started
 
 ### Usage:
-for MLE use `run_optimizer.py`, for Bayesian use `run_emcee.py` or `run_pocomc.py`
+for MLE use `run_optimizer.py`, for Bayesian use `run_emcee.py` or `run_pocomc.py`\
+
+create an environment with required packages/dependencies using `conda env create -f environment.yml`
 
 ### Limitations / issues
 - parallelization issues with libroadrunner. see: https://github.com/sys-bio/tellurium/issues/563 
