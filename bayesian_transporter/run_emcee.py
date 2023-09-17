@@ -11,6 +11,7 @@ import datetime
 import logging
 import corner
 import utility_functions as uf
+import os
 
 
 def run_sampler(config_fname):
@@ -218,7 +219,7 @@ def run_sampler(config_fname):
     plt.plot(y_obs, 'o', label='y_obs', alpha=0.3,color='orange')
     plt.legend(fontsize=14)
     plt.xlabel("time step")
-    plt.ylabel("net ion influx (M/s)");
+    plt.ylabel("net ion influx (M/s)")
     plt.savefig(os.path.join(output_dir, f'net_ion_influx_pred.png'))
     logger.info(f"plotted analysis")
 
@@ -229,6 +230,6 @@ def run_sampler(config_fname):
 if __name__ == '__main__':
 
     ##### Adjust this if needed ##### 
-    config_fname = "./example/antiporter_1_1_12D_cycle1_config.yaml"
-    run_sampler(config_fname)
+    example_config = "/example/antiporter_1_1_12D_cycle1_config.yaml"
+    run_sampler(example_config)
     

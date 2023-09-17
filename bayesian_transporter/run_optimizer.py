@@ -817,5 +817,5 @@ def run_optimizer(config_fname):
 if __name__ == '__main__':
 
     ##### Adjust this if needed ##### 
-    config_fname = "./example/antiporter_1_1_12D_cycle1_config.yaml"
-    run_optimizer(config_fname)
+    example_config = "/example/antiporter_1_1_12D_cycle1_config.yaml"
+    run_optimizer(example_config)
