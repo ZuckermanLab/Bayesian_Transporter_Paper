@@ -3,7 +3,7 @@
 Supporting code for Bayesian Transporter research - still under development. 
 
 
-### Getting started:
+### Getting started
 - create an environment with required packages/dependencies using `conda env create -f environment.yml` 
 - run through the `example_notebook.ipynb` notebook for example usage and analysis
     - ensure that the filepaths are correctly set for your system in the configuration file `...config.yaml` configuration file.
