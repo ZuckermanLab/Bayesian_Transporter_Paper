@@ -22,7 +22,7 @@ Ensure that the configuration file and file path is updated for each module as n
 - parallelization issues with libroadrunner. see: https://github.com/sys-bio/tellurium/issues/563 
 - pocoMC sampler bugs, use my fork with fix. see: https://github.com/minaskar/pocomc/issues/22 and my fork: https://github.com/augeorge/pocomc 
 
-### Docs:
+### Docs
 More detailed API documentation is provided below:
 - https://zuckermanlab.github.io/Bayesian_Transporter/ 
 
