@@ -1,7 +1,9 @@
 import numpy as np 
 import scipy as sp
-import ssme_function as ssme
+from . import ssme_function as ssme
 import time as time
+import yaml
+import tellurium as te
 
 
 def get_p0(b_list, n):
@@ -284,3 +286,69 @@ def negative_log_likelihood_wrapper_extended(params, rr_model, y_obs, initial_co
     logl = log_like_extended(params, rr_model, y_obs, initial_conditions, initial_conditions_scale, buffer_concentration_scale, solver_arguments)
     logpr = log_prior(params, param_lb, param_ub)
     return -1*(logl+logpr)
+
+
+def get_ssme_pred_data_from_config(params, config_file):   
+    """
+    Simulates a model based on parameters and a configuration file, returning the model's predictions.
+
+    This function sets up a RoadRunner model, adjusts its parameters based on the provided `params` 
+    and the `extended` field of the configuration, then simulates the model. If the simulation 
+    is successful, the function returns the simulated data. Otherwise, it returns a zero array 
+    of the same length as the observational data specified in the config file.
+
+    Args:
+        params (list[float]): List of model parameters.
+        config_file (str): Path to the YAML configuration file which contains model, data paths,
+                           and other settings.
+
+    Returns:
+        list[float]: Predicted data from the model simulation. If simulation fails, returns 
+                     a zero array of the same length as the observed data.
+    """
+
+    with open(config_file, "r") as f:
+        config = yaml.safe_load(f)
+
+    model_file = config['model_file']
+    data_file = config['data_file']
+    simulation_kwargs = config['solver_arguments']
+    seed = config['random_seed']
+    np.random.seed(seed)
+    extended = config['bayesian_inference']['extended']
+    initial_conditions = config['solver_arguments']['species_initial_concentrations']
+    initial_conditions_scale = config['solver_arguments']['species_initial_concentrations_scale']
+    buffer_concentration_scale = config['solver_arguments']['buffer_concentration_scale']
+   
+    # load roadrunner model
+    rr_model = te.loadSBMLModel(model_file)
+
+    # set parameters for ODE (SBML) model, depending on how many nuisance parameters to use
+    if extended:
+        # additional scaling and bias terms
+        k = [10**i for i in params[:-5]]
+        sigma = 10**params[-1]
+        bias = params[-2]
+        H_out_buffer_scale = params[-5]
+        S_out_buffer_scale = params[-4]
+        initial_transporter_concentration_scale = params[-3]
+    else:
+        k = [10**i for i in params[:-1]]
+        sigma = 10**params[-1]
+        bias = 1
+        H_out_buffer_scale = 1
+        S_out_buffer_scale = 1
+        initial_transporter_concentration_scale = 1
+
+    # set concentration uncertainity
+    buffer_concentration_scale[0] = H_out_buffer_scale
+    buffer_concentration_scale[1] = S_out_buffer_scale
+    initial_conditions_scale[0] = initial_transporter_concentration_scale
+
+    y_obs = np.loadtxt(data_file, delimiter=',')
+    try:
+        res = ssme.simulate_assay(rr_model, k, initial_conditions, initial_conditions_scale, buffer_concentration_scale, simulation_kwargs)
+        y_pred = bias*res[1]
+        return y_pred
+    except:
+        return [0]*len(y_obs)  

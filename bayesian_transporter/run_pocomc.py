@@ -3,7 +3,7 @@ import numpy as np
 import scipy as sp
 import pocomc as pmc 
 import yaml
-import ssme_function as ssme
+from . import ssme_function as ssme
 import tellurium as te
 import os 
 import shutil
@@ -12,7 +12,7 @@ import logging
 import corner
 import arviz as az
 import os 
-import utility_functions as uf
+from . import utility_functions as uf
 
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'  # may be needed depending on installation of math library
@@ -254,7 +254,7 @@ def run_sampler(config_fname):
 if __name__ == '__main__':
 
     ##### Adjust this if needed ##### 
-    example_config = "/example/antiporter_1_1_12D_cycle1_config.yaml"
+    example_config = "./example/antiporter_1_1_12D_cycle1_config.yaml"
     run_sampler(example_config)
     
 

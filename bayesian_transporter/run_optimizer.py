@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import scipy as sp
 import yaml
-import ssme_function as ssme
+from . import ssme_function as ssme
 import tellurium as te
 import os 
 import shutil
@@ -12,7 +12,7 @@ import time as time
 from tqdm import tqdm
 from scipy.optimize import basinhopping, dual_annealing, shgo, minimize
 import inspect
-import utility_functions as uf
+from . import utility_functions as uf
 
 
 
@@ -817,5 +817,5 @@ def run_optimizer(config_fname):
 if __name__ == '__main__':
 
     ##### Adjust this if needed ##### 
-    example_config = "/example/antiporter_1_1_12D_cycle1_config.yaml"
+    example_config = "./example/antiporter_1_1_12D_cycle1_config.yaml"
     run_optimizer(example_config)
