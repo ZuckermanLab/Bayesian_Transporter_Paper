@@ -3,12 +3,16 @@
 Supporting code for Bayesian Transporter research - still under development. 
 
 
-### Usage:
-create an environment with required packages/dependencies using `conda env create -f environment.yml` \
+### Getting started:
+- create an environment with required packages/dependencies using `conda env create -f environment.yml` 
+- run through the `example_notebook.ipynb` notebook for example usage and analysis
+- - ensure that the filepaths are correctly set for your system in the configuration file `...config.yaml` configuration file.
 
-to run the provided example, update the filepaths in the `...config.yaml` file, and update the `...config.yaml` file path in `run_optimizer.py`, `run_emcee.py` and `run_pocomc.py`as needed.
-
-for MLE with Scipy Optimization use `python YOUR_PATH_HERE/run_optimizer.py`, for Bayesian use `python YOUR_PATH_HERE/run_emcee.py` or `python YOUR_PATH_HERE/run_pocomc.py` to use the EMCEE or PocoMC packages respectively\
+### Stand alone usage
+- For Bayesian inference using EMCEE run `python YOUR_PATH_HERE/run_emcee.py` in a terminal
+- For Bayesian inference using PocoMC run `python YOUR_PATH_HERE/run_pocomc.py` in a terminal
+- For Maximum Likelihood Estimation using Scipy Optimization run `python YOUR_PATH_HERE/run_optimizer.py.py` in a terminal
+Ensure that the configuration file and file path is updated for each module as needed
 
 
 ### Limitations / issues
@@ -16,6 +20,7 @@ for MLE with Scipy Optimization use `python YOUR_PATH_HERE/run_optimizer.py`, fo
 - pocoMC sampler bugs, use my fork with fix. see: https://github.com/minaskar/pocomc/issues/22 and my fork: https://github.com/augeorge/pocomc 
 
 ### Docs:
+More detailed API documentation is provided below:
 - https://zuckermanlab.github.io/Bayesian_Transporter/ 
 
 August George, 2023
