@@ -3,14 +3,14 @@ import numpy as np
 import scipy as sp
 import emcee 
 import yaml
-from . import ssme_function as ssme
+import ssme_function as ssme
 import tellurium as te
 import os 
 import shutil
 import datetime
 import logging
 import corner
-from . import utility_functions as uf
+import utility_functions as uf
 import os
 
 

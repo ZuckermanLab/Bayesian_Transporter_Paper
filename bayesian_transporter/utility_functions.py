@@ -1,6 +1,6 @@
 import numpy as np 
 import scipy as sp
-from . import ssme_function as ssme
+import ssme_function as ssme
 import time as time
 import yaml
 import tellurium as te

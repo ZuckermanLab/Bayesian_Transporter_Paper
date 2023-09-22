@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np 
 import scipy as sp
 import yaml
-from . import ssme_function as ssme
+import ssme_function as ssme
 import tellurium as te
 import os 
 import shutil
@@ -12,7 +12,7 @@ import time as time
 from tqdm import tqdm
 from scipy.optimize import basinhopping, dual_annealing, shgo, minimize
 import inspect
-from . import utility_functions as uf
+import utility_functions as uf
 
 
 
